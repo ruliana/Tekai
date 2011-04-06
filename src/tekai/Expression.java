@@ -37,11 +37,10 @@ public class Expression {
 
     @Override
     public String toString() {
-        if (children.isEmpty()) {
+        if (children.isEmpty())
             return data + ":" + identifier;
-        } else {
+        else
             return "(" + data + ":" + identifier + " " + joinChildren() + ")";
-        }
     }
 
     public String joinChildren() {

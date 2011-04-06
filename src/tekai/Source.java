@@ -11,7 +11,7 @@ class Source {
     private String lastMatch;
 
     public Source(CharSequence source) {
-        this.source = (source == null ? "" : source);
+        this.source = source == null ? "" : source;
     }
 
     public boolean matches(String regularExpression) {
@@ -30,26 +30,21 @@ class Source {
         return true;
     }
 
-    public boolean cannotConsume(String regularExpression) {
-        return !canConsume(regularExpression);
-    }
-
     public boolean canConsume(String regularExpression) {
-        if (matches(regularExpression)) {
-            consumeLastMatch();
-            return true;
-        } else {
-            return false;
-        }
+        if (!matches(regularExpression)) return false;
+
+        consumeLastMatch();
+        return true;
     }
 
     public void consumeIf(String regularExpression) {
-        if (cannotConsume(regularExpression)) {
-            if ("".equals(sample()))
-                throw new RuntimeException("Expected \"" + regularExpression + "\", but found end of source");
-            else
-                throw new RuntimeException("Expected \"" + regularExpression + "\", but found \"" + sample() + "\"");
-        }
+
+        if (canConsume(regularExpression)) return;
+
+        if ("".equals(sample()))
+            throw new RuntimeException("Expected \"" + regularExpression + "\", but found end of source");
+        else
+            throw new RuntimeException("Expected \"" + regularExpression + "\", but found \"" + sample() + "\"");
     }
 
     public void consumeLastMatch() {
