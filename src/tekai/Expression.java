@@ -1,21 +1,20 @@
 package tekai;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 public class Expression {
 
-    private final String identifier;
-    private final List<String> data;
+    private final String type;
+    private final String value;
     private final List<Expression> children = new LinkedList<Expression>();
 
     // == Construction
 
-    public Expression(String identifier, String... data) {
-        this.identifier = identifier;
-        this.data = Arrays.asList(data);
+    public Expression(String type, String value) {
+        this.type = type;
+        this.value = value;
     }
 
     public void addChildren(Expression... expressions) {
@@ -25,12 +24,8 @@ public class Expression {
 
     // == Accessors ==
 
-    public List<String> getData() {
-        return data;
-    }
-
-    public String getDataFirstElement() {
-        return data.get(0);
+    public String getValue() {
+        return value;
     }
 
     // == Helpers ==
@@ -38,9 +33,9 @@ public class Expression {
     @Override
     public String toString() {
         if (children.isEmpty())
-            return data + ":" + identifier;
+            return "[" + value + "]:" + type;
         else
-            return "(" + data + ":" + identifier + " " + joinChildren() + ")";
+            return "([" + value + "]:" + type + " " + joinChildren() + ")";
     }
 
     public String joinChildren() {

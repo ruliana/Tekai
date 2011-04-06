@@ -164,7 +164,7 @@ public class ParserTest {
 
             @Override
             public Expression parse() {
-                Expression result = new Expression("FUNCTION", left().getDataFirstElement());
+                Expression result = new Expression("FUNCTION", left().getValue());
 
                 if (canConsume("\\)")) return result;
 
