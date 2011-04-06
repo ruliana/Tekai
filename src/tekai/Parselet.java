@@ -53,6 +53,11 @@ public abstract class Parselet {
         return getMatch().trim();
     }
 
+    protected String getLastMatchTrimmed() {
+        assert parser != null;
+        return parser.lastMatch();
+    }
+
     protected Expression left() {
         if (isPrefixParselet()) throw new RuntimeException("There is no \"left\" expression in a prefix parser");
         return left;

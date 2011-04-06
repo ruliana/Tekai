@@ -36,7 +36,7 @@ public class ParserTest {
     public void selectFrom() {
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [campo1]:IDENTIFIER [campo2]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER))", "SELECT campo1, campo2 FROM tabela");
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER))", "SELECT * FROM tabela");
-        assertParsing("", "SELECT * FROM tabela INNER JOIN outra_tabela ON xxx");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER ([ INNER JOIN]:JOIN [outra_tabela]:IDENTIFIER [xxx]:IDENTIFIER)))", "SELECT * FROM tabela INNER JOIN outra_tabela ON xxx");
     }
 
     @Test
@@ -102,7 +102,7 @@ public class ParserTest {
                 from.addChildren(nextExpression());
 
                 if (canConsume("INNER( OUTER|RIGHT)? JOIN")) {
-                    Expression join = new Expression("JOIN", "JOIN");
+                    Expression join = new Expression("JOIN", getLastMatchTrimmed());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
                     join.addChildren(nextExpression());
