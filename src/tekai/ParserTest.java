@@ -33,6 +33,13 @@ public class ParserTest {
     }
 
     @Test
+    public void selectFrom() {
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [campo1]:IDENTIFIER [campo2]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER))", "SELECT campo1, campo2 FROM tabela");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER))", "SELECT * FROM tabela");
+        assertParsing("", "SELECT * FROM tabela INNER JOIN outra_tabela ON xxx");
+    }
+
+    @Test
     public void exceptions() {
         // TODO Launch specific exception to specific problems
         // TODO Add more and more contextual information to error messages
@@ -68,6 +75,45 @@ public class ParserTest {
         final int ATOM = x++;
         final int PLUS = x++;
         final int FUNCTION = x++;
+        final int SELECT = x++;
+
+        // SQL
+        parser.register(new Parselet(SELECT) {
+            @Override
+            public boolean isPrefixParselet() {
+                return true;
+            }
+
+            @Override
+            public String startingRegularExpression() {
+                return "SELECT";
+            }
+
+            @Override
+            public Expression parse() {
+                Expression fields = new Expression("SELECT", "SELECT");
+                do {
+                    fields.addChildren(nextExpression());
+                } while (canConsume(","));
+
+                consumeIf("FROM");
+
+                Expression from = new Expression("FROM", "FROM");
+                from.addChildren(nextExpression());
+
+                if (canConsume("INNER( OUTER|RIGHT)? JOIN")) {
+                    Expression join = new Expression("JOIN", "JOIN");
+                    join.addChildren(nextExpression());
+                    consumeIf("ON");
+                    join.addChildren(nextExpression());
+                    from.addChildren(join);
+                }
+
+                Expression result = new Expression("SQL", "SQL");
+                result.addChildren(fields, from);
+                return result;
+            }
+        });
 
         // NUMBER
         parser.register(new Parselet(ATOM) {
@@ -96,7 +142,7 @@ public class ParserTest {
 
             @Override
             public String startingRegularExpression() {
-                return "\\w+";
+                return "\\w+|\\*";
             }
 
             @Override
