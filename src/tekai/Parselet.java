@@ -41,7 +41,7 @@ public abstract class Parselet {
      * Never returns null.
      * </p>
      */
-    protected String getMatch() {
+    protected String originalMatch() {
         return match == null ? "" : match;
     }
 
@@ -49,11 +49,11 @@ public abstract class Parselet {
      * Value matched by {@link #startingRegularExpression()} with no spaces around
      * @return
      */
-    protected String getMatchTrimmed() {
-        return getMatch().trim();
+    protected String originalMatchTrimmed() {
+        return originalMatch().trim();
     }
 
-    protected String getLastMatchTrimmed() {
+    protected String lastMatchTrimmed() {
         assert parser != null;
         return parser.lastMatch();
     }

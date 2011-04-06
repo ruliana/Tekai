@@ -102,7 +102,7 @@ public class ParserTest {
                 from.addChildren(nextExpression());
 
                 if (canConsume("INNER( OUTER|RIGHT)? JOIN")) {
-                    Expression join = new Expression("JOIN", getLastMatchTrimmed());
+                    Expression join = new Expression("JOIN", lastMatchTrimmed());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
                     join.addChildren(nextExpression());
@@ -129,7 +129,7 @@ public class ParserTest {
 
             @Override
             public Expression parse() {
-                return new Expression("NUMBER", getMatchTrimmed());
+                return new Expression("NUMBER", originalMatchTrimmed());
             }
         });
 
@@ -147,7 +147,7 @@ public class ParserTest {
 
             @Override
             public Expression parse() {
-                return new Expression("IDENTIFIER", getMatchTrimmed());
+                return new Expression("IDENTIFIER", originalMatchTrimmed());
             }
         });
 
@@ -170,7 +170,7 @@ public class ParserTest {
 
             @Override
             public Expression parse() {
-                Expression result = new Expression("PLUS", getMatchTrimmed());
+                Expression result = new Expression("PLUS", originalMatchTrimmed());
                 result.addChildren(left(), right());
                 return result;
             }
