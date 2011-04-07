@@ -59,6 +59,17 @@ public class ParserTest {
     }
 
     @Test
+    public void selectWithConcat(){
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER [campo2]:IDENTIFIER)) ([FROM]:FROM [tabela]:IDENTIFIER))", "SELECT campo1 || campo2 FROM tabela");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER [campo2]:IDENTIFIER [campo3]:IDENTIFIER)) ([FROM]:FROM [tabela]:IDENTIFIER))",
+                "SELECT campo1 || campo2 || campo3 FROM tabela");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER [campo2]:IDENTIFIER ([abc]:FUNCTION [campo3]:IDENTIFIER [campo4]:IDENTIFIER))) ([FROM]:FROM [tabela]:IDENTIFIER))",
+                "SELECT campo1 || campo2 || abc(campo3, campo4) FROM tabela");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER ['string']:STRING ([abc]:FUNCTION [campo3]:IDENTIFIER [campo4]:IDENTIFIER))) ([FROM]:FROM [tabela]:IDENTIFIER))",
+                "SELECT campo1 || 'string' || abc(campo3, campo4) FROM tabela");
+    }
+
+    @Test
     public void selectWithLasers(){
         assertParsing("", " SELECT C120.idcomercial, "
             + "        C120.idnome, "
@@ -71,22 +82,11 @@ public class ParserTest {
             + "        X040.docto2 AS inscricao "
             + " FROM ACT12000 AS C120 "
             + " INNER JOIN AXT04000 AS X040 ON X040.idnome = C120.idnome "
-            + "   LEFT OUTER JOIN AXT02000 AS X020A ON X020A.idparametro = C120.sitsis "
-            + "   LEFT OUTER JOIN AXT02000 AS X020B ON X020B.idparametro = C120.sitcom "
-            + "   LEFT OUTER JOIN AXT02000 AS X020C ON X020C.idparametro = C120.sitlas "
-            + "   LEFT OUTER JOIN AXT03000 AS X030  ON X030.idcidade     = X040.idcidade ");
+            + "   INNER JOIN AXT02000 AS X020A ON X020A.idparametro = C120.sitsis "
+            + "   INNER JOIN AXT02000 AS X020B ON X020B.idparametro = C120.sitcom "
+            + "   INNER JOIN AXT02000 AS X020C ON X020C.idparametro = C120.sitlas "
+            + "   INNER JOIN AXT03000 AS X030  ON X030.idcidade     = X040.idcidade ");
      }
-
-    @Test
-    public void selectWithConcat(){
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER [campo2]:IDENTIFIER)) ([FROM]:FROM [tabela]:IDENTIFIER))", "SELECT campo1 || campo2 FROM tabela");
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER [campo2]:IDENTIFIER [campo3]:IDENTIFIER)) ([FROM]:FROM [tabela]:IDENTIFIER))",
-                "SELECT campo1 || campo2 || campo3 FROM tabela");
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER [campo2]:IDENTIFIER ([abc]:FUNCTION [campo3]:IDENTIFIER [campo4]:IDENTIFIER))) ([FROM]:FROM [tabela]:IDENTIFIER))",
-                "SELECT campo1 || campo2 || abc(campo3, campo4) FROM tabela");
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([||]:CONCAT [campo1]:IDENTIFIER ['string']:STRING ([abc]:FUNCTION [campo3]:IDENTIFIER [campo4]:IDENTIFIER))) ([FROM]:FROM [tabela]:IDENTIFIER))",
-                "SELECT campo1 || 'string' || abc(campo3, campo4) FROM tabela");
-    }
 
      @Test
     public void selectOrder(){
