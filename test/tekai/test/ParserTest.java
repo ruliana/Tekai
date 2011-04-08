@@ -86,14 +86,14 @@ public class ParserTest {
     }
 
     @Test
-    public void selectWithLasers(){
+    public void selectWithJoin(){
         String expected =
 "([SQL]:SQL\n" +
 "  ([SELECT]:SELECT\n" +
 "    [C120.idcomercial]:IDENTIFIER\n" +
 "    [C120.idnome]:IDENTIFIER\n" +
 "    [X040.razsoc]:IDENTIFIER\n"  +
-"    ([AS]:ALIAS [X040.docto1]:IDENTIFIER [cnpj]:IDENTIFIER)\n"  +
+"    ([as]:ALIAS [X040.docto1]:IDENTIFIER [cnpj]:IDENTIFIER)\n"  +
 "    ([AS]:ALIAS [X030.nomcid]:IDENTIFIER [municipio]:IDENTIFIER)\n" +
 "    ([AS]:ALIAS [X030.uf]:IDENTIFIER [uf]:IDENTIFIER)\n" +
 "    ([=]:ALIAS [chave_acesso]:IDENTIFIER ['                              ']:STRING)\n" +
@@ -121,7 +121,7 @@ public class ParserTest {
         assertParsing(spaces.matcher(expected).replaceAll(" "), " SELECT C120.idcomercial, "
             + "        C120.idnome, "
             + "        X040.razsoc, "
-            + "        X040.docto1 AS cnpj,  "
+            + "        X040.docto1 as cnpj,  "
             + "        X030.nomcid AS municipio,  "
             + "        X030.uf AS uf, "
             + "        chave_acesso = '                              ', "
@@ -139,8 +139,24 @@ public class ParserTest {
     public void selectOrder(){
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)) ([ORDER BY]:ORDER [campo2]:IDENTIFIER))", "SELECT  * FROM tabela WHERE campo = 2 ORDER BY campo2");
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)) ([ORDER BY]:ORDER [campo2]:IDENTIFIER [campo3]:IDENTIFIER [campo4]:IDENTIFIER))", "SELECT  * FROM tabela WHERE campo = 2 ORDER BY campo2, campo3, campo4");
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([ORDER BY]:ORDER [campo2]:IDENTIFIER [campo3]:IDENTIFIER [campo4]:IDENTIFIER))", "SELECT  * FROM tabela ORDER BY campo2, campo3, campo4");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([ORDER BY]:ORDER [campo2]:IDENTIFIER [campo3]:IDENTIFIER [campo4]:IDENTIFIER [ASC]:ORDERING))", "SELECT  * FROM tabela ORDER BY campo2, campo3, campo4 ASC");
+    }
 
+    @Test
+    public void selectLimit(){
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)) ([LIMIT]:LIMIT [10]:NUMBER))", "SELECT  * FROM tabela WHERE campo = 2  LIMIT 10");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)) ([ORDER BY]:ORDER [campo2]:IDENTIFIER) ([LIMIT]:LIMIT [10]:NUMBER ([OFFSET]:OFFSET [0]:NUMBER)))", "SELECT  * FROM tabela WHERE campo = 2 ORDER BY campo2 LIMIT 10 OFFSET 0");
+    }
+
+     @Test
+    public void Case(){
+        assertParsing("",
+                " SELECT"
+            + " CASE"
+            + " WHEN 1  THEN  'Aguarda Distribuição'"
+            + " WHEN 2  THEN  'Em Análise'"
+            + " ELSE '' END , *"
+            + " FROM sat00100 as sa001");
 
     }
 
@@ -184,8 +200,10 @@ public class ParserTest {
         final int EQUALS = x++;
         final int MULTIPLY = x++;
         final int SUM = x++;
+       // final int CASE = x++;
         final int GROUPING = x++;
         final int FUNCTION = x++;
+        final int ORDER = x++;
         final int SELECT = x++;
 
         // SQL
@@ -197,7 +215,7 @@ public class ParserTest {
 
             @Override
             public String startingRegularExpression() {
-                return "SELECT";
+                return "\\b((?i)SELECT)\\b";
             }
 
             @Override
@@ -240,13 +258,35 @@ public class ParserTest {
                    result.addChildren(where);
                 }
 
+                if(canConsume("\\b((?i)GROUP BY)\\b")){
+                    Expression group = new Expression("GROUP", "GROUP BY");
+                    do{
+                        group.addChildren(nextExpression());
+                    }while(canConsume("\\,"));
+                    result.addChildren(group);
+                }
 
-                if(canConsume("\\b((?i)ORDER BY)\\b")){
+                if(canConsume("\\b((?i)ORDER\\s+BY)\\b")){
                     Expression order = new Expression("ORDER", "ORDER BY");
                     do {
                         order.addChildren(nextExpression());
                     } while(canConsume("\\,"));
+
+                    if(canConsume("ASC|DESC"))
+                        order.addChildren(new Expression("ORDERING", lastMatchTrimmed()));
+
                     result.addChildren(order);
+                }
+
+                if(canConsume("\\b((?i)LIMIT)\\b")){
+                    Expression limit = new Expression("LIMIT", "LIMIT");
+                    limit.addChildren(nextExpression());
+                    if(canConsume("\\b((?i)OFFSET)\\b")){
+                        Expression offset = new Expression("OFFSET", "OFFSET");
+                        offset.addChildren(nextExpression());
+                        limit.addChildren(offset);
+                    }
+                    result.addChildren(limit);
                 }
 
                 return result;
@@ -263,7 +303,7 @@ public class ParserTest {
         parser.register(new InfixParselet(SUM, "(\\+|-)", "ARITHMETIC"));
 
         //ALIAS
-        parser.register(new InfixParselet(ATOM, "AS", "ALIAS"));
+        parser.register(new InfixParselet(ATOM, "\\b((?i)AS)\\b", "ALIAS"));
 
         //EQUALS (OPERATOR)
         parser.register(new InfixParselet(EQUALS, "=", "OPERATOR"));
@@ -277,6 +317,9 @@ public class ParserTest {
         // FUNCTION
         parser.register(new BeforeMiddleAfterParselet(FUNCTION, "(\\w+)\\s*\\(", ",", "\\)", "FUNCTION"));
 
+        //ORDER BY
+        //parser.register(new BeforeMiddleAfterParselet(ORDER, "\\b((?i)ORDER\\s+BY)\\b", ",", "(\\b((?i)ASC)\\b|\\b((?i)DESC)\\b)?", "ORDER BY"));
+
         //NUMBER
         parser.register(new AtomParselet(ATOM, "\\d+(?:\\.\\d+)?", "NUMBER"));
 
@@ -285,5 +328,48 @@ public class ParserTest {
 
         //IDENTIFIER
         parser.register(new AtomParselet(ATOM, "(\\w+\\.\\w+|\\w+|\\*)", "IDENTIFIER"));
+
+        //CASE
+       /* parser.register(new Parselet(CASE) {
+
+            @Override
+            public boolean isPrefixParselet() {
+                return true;
+            }
+
+            @Override
+            public boolean isLeftAssociativity() {
+                return false;
+            }
+
+            @Override
+            public String startingRegularExpression() {
+                return "\\b((?i)CASE)\\b";
+            }
+
+            @Override
+            protected Expression parse() {
+                Expression ecase = new Expression("CASE", lastMatchTrimmed());
+
+                if(cannotConsume("\\b((?i)WHEN)\\b")){
+                    ecase.addChildren(nextExpression());
+                }
+
+                do{
+                    if(canConsume("\\b((?i)WHEN)\\b")){
+                        ecase.addChildren(nextExpression());
+
+                        consumeIf("\\b((?i)THEN)\\b");
+
+                        ecase.addChildren(nextExpression());
+                    }
+                }while(cannotConsume("END"));
+
+                return ecase;
+
+            }
+        });
+         */
+         
     }
 }
