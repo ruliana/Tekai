@@ -3,20 +3,25 @@ package tekai.standard;
 import tekai.Expression;
 import tekai.Parselet;
 
-public class PrefixParselet extends Parselet {
+public class InfixParselet extends Parselet {
 
     private final String startingRegularExpression;
     private final String type;
 
-    public PrefixParselet(int precedence, String startingRegularExpression, String type) {
+    public InfixParselet(int precedence, String startingRegularExpression, String type) {
         this.setPrecedence(precedence);
         this.startingRegularExpression = startingRegularExpression;
         this.type = type;
     }
 
     @Override
+    public boolean isLeftAssociativity() {
+      return true;
+    }
+
+    @Override
     public boolean isPrefixParselet() {
-        return true;
+        return false;
     }
 
     @Override
@@ -27,7 +32,7 @@ public class PrefixParselet extends Parselet {
     @Override
     protected Expression parse() {
         Expression result = new Expression(type, lastMatchTrimmed());
-        result.addChildren(right());
+        result.addChildren(left(), right());
         return result;
     }
 }

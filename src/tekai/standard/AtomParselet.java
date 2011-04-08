@@ -3,12 +3,12 @@ package tekai.standard;
 import tekai.Expression;
 import tekai.Parselet;
 
-public class PrefixParselet extends Parselet {
+public class AtomParselet extends Parselet {
 
     private final String startingRegularExpression;
     private final String type;
 
-    public PrefixParselet(int precedence, String startingRegularExpression, String type) {
+    public AtomParselet(int precedence, String startingRegularExpression, String type) {
         this.setPrecedence(precedence);
         this.startingRegularExpression = startingRegularExpression;
         this.type = type;
@@ -26,8 +26,6 @@ public class PrefixParselet extends Parselet {
 
     @Override
     protected Expression parse() {
-        Expression result = new Expression(type, lastMatchTrimmed());
-        result.addChildren(right());
-        return result;
+        return new Expression(type, lastMatchTrimmed());
     }
 }

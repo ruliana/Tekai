@@ -24,10 +24,17 @@ class Source {
 
         if (!matcher.find()) return false;
 
-        lastMatch = matcher.group(0);
+        lastMatch = lastMatchedGroup(matcher);
         newCursor = matcher.end();
 
         return true;
+    }
+
+    private String lastMatchedGroup(Matcher matcher) {
+        for (int i = matcher.groupCount(); i >= 0; i--)
+            if (matcher.group(i) != null) return matcher.group(i);
+
+        return matcher.group(0);
     }
 
     public boolean canConsume(String regularExpression) {

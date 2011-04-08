@@ -10,8 +10,11 @@ import org.junit.Test;
 import tekai.Expression;
 import tekai.Parselet;
 import tekai.Parser;
-import tekai.standard.BinaryParselet;
+import tekai.standard.AtomParselet;
+import tekai.standard.InfixParselet;
+import tekai.standard.GroupingParselet;
 import tekai.standard.PrefixParselet;
+import tekai.standard.BeforeMiddleAfterParselet;
 
 public class ParserTest {
 
@@ -185,13 +188,6 @@ public class ParserTest {
         final int FUNCTION = x++;
         final int SELECT = x++;
 
-        // BOOLEAN
-        parser.register(new BinaryParselet(OR, "\\b((?i)OR)\\b", "BOOLEAN"));
-        parser.register(new BinaryParselet(AND, "\\b((?i)AND)\\b", "BOOLEAN"));
-        parser.register(new PrefixParselet(NOT, "\\b((?i)NOT)\\b", "BOOLEAN"));
-        parser.register(new BinaryParselet(MULTIPLY, "(\\*|/|%)", "ARITHMETIC"));
-        parser.register(new BinaryParselet(SUM, "(\\+|-)", "ARITHMETIC"));
-
         // SQL
         parser.register(new Parselet(SELECT) {
             @Override
@@ -228,7 +224,7 @@ public class ParserTest {
                 } while(canConsume("\\,"));
 
 
-                while (canConsume("\\b((?i)INNER( OUTER|RIGHT)? JOIN)\\b")) {
+                while (canConsume("\\b((?i)INNER(?: OUTER|RIGHT)? JOIN)\\b")) {
                     Expression join = new Expression("JOIN", lastMatchTrimmed());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
@@ -257,195 +253,37 @@ public class ParserTest {
             }
         });
 
-        // NUMBER
-        parser.register(new Parselet(ATOM) {
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
+        // BOOLEAN
+        parser.register(new InfixParselet(OR, "\\b((?i)OR)\\b", "BOOLEAN"));
+        parser.register(new InfixParselet(AND, "\\b((?i)AND)\\b", "BOOLEAN"));
+        parser.register(new PrefixParselet(NOT, "\\b((?i)NOT)\\b", "BOOLEAN"));
 
-            @Override
-            public String startingRegularExpression() {
-                return "\\d+(\\.\\d+)?";
-            }
-
-            @Override
-            public Expression parse() {
-                return new Expression("NUMBER", originalMatchTrimmed());
-            }
-        });
-
-        //STRING
-        parser.register(new Parselet(ATOM) {
-
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\'([^\\']+)?\\'";
-            }
-
-            @Override
-            protected Expression parse() {
-                return new Expression("STRING", originalMatchTrimmed());
-            }
-        });
+        // ARITHMETIC
+        parser.register(new InfixParselet(MULTIPLY, "(\\*|/|%)", "ARITHMETIC"));
+        parser.register(new InfixParselet(SUM, "(\\+|-)", "ARITHMETIC"));
 
         //ALIAS
-        parser.register(new Parselet(ATOM) {
+        parser.register(new InfixParselet(ATOM, "AS", "ALIAS"));
 
-            @Override
-            public boolean isPrefixParselet() {
-                return false;
-            }
-
-            @Override
-            public boolean isLeftAssociativity(){
-                return true;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "AS";
-            }
-
-            @Override
-            protected Expression parse() {
-                Expression result = new Expression("ALIAS", "AS");
-                result.addChildren(left(), right());
-                return result;
-            }
-        });
+        //EQUALS (OPERATOR)
+        parser.register(new InfixParselet(EQUALS, "=", "OPERATOR"));
 
         //CONCAT
-        parser.register(new Parselet(ATOM) {
-
-            @Override
-            public boolean isPrefixParselet() {
-                return false;
-            }
-
-            @Override
-            public boolean isLeftAssociativity(){
-                return true;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\|\\|";
-            }
-
-            @Override
-            protected Expression parse() {
-                Expression result = new Expression("CONCAT", originalMatchTrimmed());
-                result.addChildren(left());
-                do{
-                    result.addChildren(nextExpression());
-                }while(canConsume("\\|\\|"));
-                return result;
-            }
-        });
-
-        // EQUALS
-        parser.register(new Parselet(EQUALS) {
-            @Override
-            protected boolean isLeftAssociativity() {
-                return true;
-            }
-
-            @Override
-            public boolean isPrefixParselet() {
-                return false;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\=";
-
-            }
-
-            @Override
-            public Expression parse() {
-                Expression result = new Expression("OPERATOR", originalMatchTrimmed());
-                result.addChildren(left(), right());
-                return result;
-            }
-        });
+        parser.register(new BeforeMiddleAfterParselet(ATOM, null, "\\|\\|", null, "CONCAT"));
 
         // GROUPING (parenthesis)
-        parser.register(new Parselet(GROUPING) {
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\(";
-            }
-
-            @Override
-            public Expression parse() {
-                Expression result = right();
-                consumeIf("\\)");
-                return result;
-            }
-        });
-
-
-        // IDENTIFIER
-        parser.register(new Parselet(ATOM) {
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
-
-             @Override
-            protected boolean isLeftAssociativity() {
-                return true;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "(\\w+\\.\\w+|\\w+|\\*)";
-            }
-
-            @Override
-            public Expression parse() {
-                return new Expression("IDENTIFIER", originalMatchTrimmed());
-            }
-        });
+        parser.register(new GroupingParselet(GROUPING, "\\(", "\\)"));
 
         // FUNCTION
-        parser.register(new Parselet(FUNCTION) {
-            @Override
-            public boolean isPrefixParselet() {
-                return false;
-            }
+        parser.register(new BeforeMiddleAfterParselet(FUNCTION, "(\\w+)\\s*\\(", ",", "\\)", "FUNCTION"));
 
-            @Override
-            public String startingRegularExpression() {
-                return "\\(";
-            }
+        //NUMBER
+        parser.register(new AtomParselet(ATOM, "\\d+(?:\\.\\d+)?", "NUMBER"));
 
-            @Override
-            public Expression parse() {
-                Expression result = new Expression("FUNCTION", left().getValue());
+        //STRING
+        parser.register(new AtomParselet(ATOM, "\\'[^\\']+?\\'", "STRING"));
 
-                if (canConsume("\\)")) return result;
-
-                do {
-                    result.addChildren(nextExpression());
-                } while (canConsume(","));
-
-                consumeIf("\\)");
-
-                return result;
-            }
-        });
-
+        //IDENTIFIER
+        parser.register(new AtomParselet(ATOM, "(\\w+\\.\\w+|\\w+|\\*)", "IDENTIFIER"));
     }
 }
