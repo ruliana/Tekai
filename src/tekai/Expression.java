@@ -8,7 +8,7 @@ public class Expression {
 
     private final String type;
     private final String value;
-    private final List<Expression> children = new LinkedList<Expression>();
+    private List<Expression> children = new LinkedList<Expression>();
 
     // == Construction
 
@@ -22,10 +22,24 @@ public class Expression {
             children.add(expression);
     }
 
+    public void addChildren(List<Expression> expressions) {
+        children = expressions;
+    }
+
     // == Accessors ==
 
     public String getValue() {
         return value;
+    }
+
+    public List<Expression> getChildren() {
+      return children;
+    }
+
+    // == Inspection ==
+
+    public boolean isType(String type) {
+      return this.type == type;
     }
 
     // == Helpers ==

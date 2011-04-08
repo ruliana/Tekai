@@ -55,7 +55,7 @@ public abstract class Parselet {
 
     protected String lastMatchTrimmed() {
         assert parser != null;
-        return parser.lastMatch();
+        return parser.lastMatch().trim();
     }
 
     protected Expression left() {
