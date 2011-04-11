@@ -149,16 +149,43 @@ public class ParserTest {
     }
 
      @Test
-    public void Case(){
-        assertParsing("",
-                " SELECT"
-            + " CASE"
-            + " WHEN 1  THEN  'Aguarda Distribuição'"
-            + " WHEN 2  THEN  'Em Análise'"
-            + " ELSE '' END , *"
+    public void TestCase(){
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([CASE]:CASE [campo]:IDENTIFIER ([WHEN]:WHEN [1]:NUMBER ([THEN]:THEN ['Aguarda DistribuiÃ§Ã£o']:STRING)) ([WHEN]:WHEN [2]:NUMBER ([THEN]:THEN ['Em AnÃ¡lise']:STRING)) ([ELSE]:ELSE ['']:STRING))) ([FROM]:FROM ([as]:ALIAS [sat00100]:IDENTIFIER [sa001]:IDENTIFIER)))",
+              " SELECT  CASE campo"
+            + " WHEN 1  THEN  'Aguarda DistribuiÃ§Ã£o'"
+            + " WHEN 2  THEN  'Em AnÃ¡lise'"
+            + " ELSE ''  END "
             + " FROM sat00100 as sa001");
 
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([CASE]:CASE ([*]:ARITHMETIC [x]:IDENTIFIER [5]:NUMBER) ([WHEN]:WHEN [1]:NUMBER ([THEN]:THEN ([=]:OPERATOR [msg]:IDENTIFIER ['one or two']:STRING))) ([ELSE]:ELSE ([=]:OPERATOR [msg]:IDENTIFIER ['other value than one or two']:STRING)))) ([FROM]:FROM [TABELA]:IDENTIFIER))",
+                "SELECT CASE x*5 "
+                + "WHEN 1 THEN msg = 'one or two' "
+                + "ELSE msg = 'other value than one or two'"
+                + "END "
+                + "FROM TABELA");
+       
     }
+     
+     @Test
+    public void subSelect(){
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [DISTINCT]:DISTINCT [ax050.idinterno]:IDENTIFIER [ax050.descricao]:IDENTIFIER ([||]:CONCAT ([=]:OPERATOR ['sistema']:STRING ([RTRIM]:FUNCTION [ax050.idinterno]:IDENTIFIER)) [' - ']:STRING ([RTRIM]:FUNCTION [ax050.descricao]:IDENTIFIER))) ([FROM]:FROM ([AS]:ALIAS [AXT05000]:IDENTIFIER [ax050]:IDENTIFIER)) ([WHERE]:WHERE ([like]:LIKE [ax050.Descricao]:IDENTIFIER ['SERVIÇOS DE TI%']:STRING)))",
+                "SELECT DISTINCT ax050.idinterno, ax050.descricao,    "
+            + "                        'sistema' = RTRIM(ax050.idinterno) || ' - ' || RTRIM(ax050.descricao)    "
+            + "           FROM AXT05000 AS ax050    "
+            + "            WHERE ax050.Descricao like 'SERVIÇOS DE TI%'  ");
+
+     
+    }
+
+     @Test
+     public void SelectGroup(){
+          assertParsing("([SQL]:SQL ([SELECT]:SELECT [DISTINCT]:DISTINCT [ax050.idinterno]:IDENTIFIER [ax050.descricao]:IDENTIFIER ([||]:CONCAT ([=]:OPERATOR ['sistema']:STRING ([RTRIM]:FUNCTION [ax050.idinterno]:IDENTIFIER)) [' - ']:STRING ([RTRIM]:FUNCTION [ax050.descricao]:IDENTIFIER))) ([FROM]:FROM ([AS]:ALIAS [AXT05000]:IDENTIFIER [ax050]:IDENTIFIER)) ([WHERE]:WHERE ([like]:LIKE [ax050.Descricao]:IDENTIFIER ['SERVIÇOS DE TI%']:STRING)) ([GROUP BY]:GROUP [campo1]:IDENTIFIER [campo2]:IDENTIFIER))",
+                "SELECT DISTINCT ax050.idinterno, ax050.descricao,    "
+            + "                        'sistema' = RTRIM(ax050.idinterno) || ' - ' || RTRIM(ax050.descricao)    "
+            + "           FROM AXT05000 AS ax050    "
+            + "            WHERE ax050.Descricao like 'SERVIÇOS DE TI%'  "
+            + " GROUP BY campo1, campo2");
+     }
 
     @Test
     public void exceptions() {
@@ -171,6 +198,8 @@ public class ParserTest {
             // success
         }
     }
+
+
 
     // == Helpers ==
 
@@ -197,12 +226,14 @@ public class ParserTest {
         final int OR = x++;
         final int AND = x++;
         final int NOT = x++;
+        final int LIKE = x++;
         final int EQUALS = x++;
         final int MULTIPLY = x++;
         final int SUM = x++;
-       // final int CASE = x++;
         final int GROUPING = x++;
+        final int GROUP = x++;
         final int FUNCTION = x++;
+        final int CASE = x++;
         final int ORDER = x++;
         final int SELECT = x++;
 
@@ -222,7 +253,12 @@ public class ParserTest {
             public Expression parse() {
                 Expression result = new Expression("SQL", "SQL");
 
-                Expression fields = new Expression("SELECT", "SELECT");
+                Expression fields = new Expression("SELECT", lastMatchTrimmed());
+
+                if(canConsume("\\b((?i)DISTINCT)\\b")){
+                    fields.addChildren(new Expression("DISTINCT", lastMatchTrimmed()));
+                }
+
                 do {
                     Expression field = nextExpression();
                     if (field.isType("OPERATOR")) {
@@ -233,7 +269,6 @@ public class ParserTest {
                     fields.addChildren(field);
                 } while (canConsume("\\,"));
 
-
                 consumeIf("\\b((?i)FROM)\\b");
 
                 Expression from = new Expression("FROM", "FROM");
@@ -241,8 +276,7 @@ public class ParserTest {
                     from.addChildren(nextExpression());
                 } while(canConsume("\\,"));
 
-
-                while (canConsume("\\b((?i)INNER(?: OUTER|RIGHT)? JOIN)\\b")) {
+                while (canConsume("\\b((?i)INNER(?: OUTER|RIGHT|LEFT)? JOIN)\\b")) {
                     Expression join = new Expression("JOIN", lastMatchTrimmed());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
@@ -251,14 +285,13 @@ public class ParserTest {
                 }
                 result.addChildren(fields, from);
 
-
                 if(canConsume("\\b((?i)WHERE)\\b")){
                     Expression where = new Expression("WHERE", "WHERE");
                     where.addChildren(nextExpression());
                    result.addChildren(where);
                 }
 
-                if(canConsume("\\b((?i)GROUP BY)\\b")){
+                if(canConsume("\\b((?i)GROUP\\s+BY)\\b")){
                     Expression group = new Expression("GROUP", "GROUP BY");
                     do{
                         group.addChildren(nextExpression());
@@ -266,13 +299,23 @@ public class ParserTest {
                     result.addChildren(group);
                 }
 
+               // result.addChildren(nextExpression());
+
+               /* if(canConsume("\\b((?i)HAVING)\\b")){
+                    Expression having = new Expression("HAVING", "HAVING");
+                    do{
+                        having.addChildren(nextExpression());
+                    }while(canConsume("\\,"));
+                    result.addChildren(having);
+                }*/
+
                 if(canConsume("\\b((?i)ORDER\\s+BY)\\b")){
                     Expression order = new Expression("ORDER", "ORDER BY");
                     do {
                         order.addChildren(nextExpression());
                     } while(canConsume("\\,"));
 
-                    if(canConsume("ASC|DESC"))
+                    if(canConsume("\\ASC|DESC"))
                         order.addChildren(new Expression("ORDERING", lastMatchTrimmed()));
 
                     result.addChildren(order);
@@ -293,10 +336,52 @@ public class ParserTest {
             }
         });
 
+         //CASE
+         parser.register(new Parselet(CASE) {
+
+            @Override
+            public boolean isPrefixParselet() {
+                return true;
+            }
+
+            @Override
+            public String startingRegularExpression() {
+                return "\\b((?i)CASE)\\b";
+            }
+
+            @Override
+            protected Expression parse() {
+                Expression ecase = new Expression("CASE", lastMatchTrimmed());
+
+                do{
+                    if(canConsume("\\b((?i)WHEN)\\b")){
+                        Expression when = new Expression("WHEN", "WHEN");
+                        when.addChildren(nextExpression());
+
+                        consumeIf("\\b((?i)THEN)\\b");
+                        Expression then = new Expression("THEN", "THEN");
+                        then.addChildren(nextExpression());
+                        when.addChildren(then);
+                        ecase.addChildren(when);
+                    }else if(canConsume("\\b((?i)ELSE)\\b")){
+                        Expression eelse = new Expression("ELSE", "ELSE");
+                        eelse.addChildren(nextExpression());
+                        ecase.addChildren(eelse);
+                    }else
+                        ecase.addChildren(nextExpression());
+                }while(cannotConsume("\\b((?i)END)\\b"));
+
+                return ecase;
+            }
+        });
+
         // BOOLEAN
         parser.register(new InfixParselet(OR, "\\b((?i)OR)\\b", "BOOLEAN"));
         parser.register(new InfixParselet(AND, "\\b((?i)AND)\\b", "BOOLEAN"));
         parser.register(new PrefixParselet(NOT, "\\b((?i)NOT)\\b", "BOOLEAN"));
+
+        //LIKE
+        parser.register(new InfixParselet(LIKE, "\\b((?i)LIKE)\\b", "LIKE"));
 
         // ARITHMETIC
         parser.register(new InfixParselet(MULTIPLY, "(\\*|/|%)", "ARITHMETIC"));
@@ -310,6 +395,10 @@ public class ParserTest {
 
         //CONCAT
         parser.register(new BeforeMiddleAfterParselet(ATOM, null, "\\|\\|", null, "CONCAT"));
+        
+        //GROUP BY
+        parser.register(new BeforeMiddleAfterParselet(GROUP, "\\b((?i)GROUP\\s+BY)\\b", "\\,", null, "GROUPBY"));
+        //parser.register(new BeforeMiddleAfterParselet(ORDER, "\\b((?i)HAVING)\\b", "\\,", null, "HAVING"));
 
         // GROUPING (parenthesis)
         parser.register(new GroupingParselet(GROUPING, "\\(", "\\)"));
@@ -324,52 +413,10 @@ public class ParserTest {
         parser.register(new AtomParselet(ATOM, "\\d+(?:\\.\\d+)?", "NUMBER"));
 
         //STRING
-        parser.register(new AtomParselet(ATOM, "\\'[^\\']+?\\'", "STRING"));
+        parser.register(new AtomParselet(ATOM, "\\'[^\\']*?\\'", "STRING"));
 
         //IDENTIFIER
         parser.register(new AtomParselet(ATOM, "(\\w+\\.\\w+|\\w+|\\*)", "IDENTIFIER"));
 
-        //CASE
-       /* parser.register(new Parselet(CASE) {
-
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
-
-            @Override
-            public boolean isLeftAssociativity() {
-                return false;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\b((?i)CASE)\\b";
-            }
-
-            @Override
-            protected Expression parse() {
-                Expression ecase = new Expression("CASE", lastMatchTrimmed());
-
-                if(cannotConsume("\\b((?i)WHEN)\\b")){
-                    ecase.addChildren(nextExpression());
-                }
-
-                do{
-                    if(canConsume("\\b((?i)WHEN)\\b")){
-                        ecase.addChildren(nextExpression());
-
-                        consumeIf("\\b((?i)THEN)\\b");
-
-                        ecase.addChildren(nextExpression());
-                    }
-                }while(cannotConsume("END"));
-
-                return ecase;
-
-            }
-        });
-         */
-         
     }
 }
