@@ -11,10 +11,10 @@ import tekai.Expression;
 import tekai.Parselet;
 import tekai.Parser;
 import tekai.standard.AtomParselet;
-import tekai.standard.InfixParselet;
-import tekai.standard.GroupingParselet;
-import tekai.standard.PrefixParselet;
 import tekai.standard.BeforeMiddleAfterParselet;
+import tekai.standard.GroupingParselet;
+import tekai.standard.InfixParselet;
+import tekai.standard.PrefixParselet;
 
 public class ParserTest {
 
@@ -163,9 +163,9 @@ public class ParserTest {
                 + "ELSE msg = 'other value than one or two'"
                 + "END "
                 + "FROM TABELA");
-       
+
     }
-     
+
      @Test
     public void subSelect(){
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [DISTINCT]:DISTINCT [ax050.idinterno]:IDENTIFIER [ax050.descricao]:IDENTIFIER ([||]:CONCAT ([=]:OPERATOR ['sistema']:STRING ([RTRIM]:FUNCTION [ax050.idinterno]:IDENTIFIER)) [' - ']:STRING ([RTRIM]:FUNCTION [ax050.descricao]:IDENTIFIER))) ([FROM]:FROM ([AS]:ALIAS [AXT05000]:IDENTIFIER [ax050]:IDENTIFIER)) ([WHERE]:WHERE ([like]:LIKE [ax050.Descricao]:IDENTIFIER ['SERVIÇOS DE TI%']:STRING)))",
@@ -174,7 +174,7 @@ public class ParserTest {
             + "           FROM AXT05000 AS ax050    "
             + "            WHERE ax050.Descricao like 'SERVIÇOS DE TI%'  ");
 
-     
+
     }
 
      @Test
@@ -234,7 +234,6 @@ public class ParserTest {
         final int GROUP = x++;
         final int FUNCTION = x++;
         final int CASE = x++;
-        final int ORDER = x++;
         final int SELECT = x++;
 
         // SQL
@@ -395,7 +394,7 @@ public class ParserTest {
 
         //CONCAT
         parser.register(new BeforeMiddleAfterParselet(ATOM, null, "\\|\\|", null, "CONCAT"));
-        
+
         //GROUP BY
         parser.register(new BeforeMiddleAfterParselet(GROUP, "\\b((?i)GROUP\\s+BY)\\b", "\\,", null, "GROUPBY"));
         //parser.register(new BeforeMiddleAfterParselet(ORDER, "\\b((?i)HAVING)\\b", "\\,", null, "HAVING"));
