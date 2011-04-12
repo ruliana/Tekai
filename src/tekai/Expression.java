@@ -1,5 +1,8 @@
 package tekai;
 
+import static java.util.Arrays.asList;
+
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,20 +29,38 @@ public class Expression {
         children = expressions;
     }
 
+    public static Expression e(String value, String type, Expression ... expressions) {
+        return e(value, type, new LinkedList<Expression>(asList(expressions)));
+    }
+
+    public static Expression e(String value, String type, List<Expression> expressions) {
+        Expression result = new Expression(type, value);
+        result.addChildren(expressions);
+        return result;
+    }
+
     // == Accessors ==
 
     public String getValue() {
         return value;
     }
 
+    public String getType() {
+        return type;
+    }
+
     public List<Expression> getChildren() {
-      return children;
+      return Collections.unmodifiableList(children);
     }
 
     // == Inspection ==
 
     public boolean isType(String type) {
-      return this.type == type;
+      return this.type != null && this.type.equals(type);
+    }
+
+    public boolean hasValue(String regex) {
+        return value.matches(regex);
     }
 
     // == Helpers ==
