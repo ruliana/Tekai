@@ -315,7 +315,7 @@ public class ParserTest {
                         order.addChildren(nextExpression());
                     } while(canConsume("\\,"));
 
-                    if(canConsume("\\ASC|DESC"))
+                    if(canConsume("\\b((?i)ASC|DESC)\\b"))
                         order.addChildren(new Expression("ORDERING", lastMatchTrimmed()));
 
                     result.addChildren(order);
