@@ -5,6 +5,12 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
+import tekai.standard.AtomParselet;
+import tekai.standard.BeforeMiddleAfterParselet;
+import tekai.standard.GroupingParselet;
+import tekai.standard.InfixParselet;
+import tekai.standard.PrefixParselet;
+
 public class ParserTest {
 
     @Test
@@ -15,9 +21,9 @@ public class ParserTest {
 
     @Test
     public void simpleExpression() {
-        assertParsing("Simple infix", "([+]:PLUS [1]:NUMBER [2]:NUMBER)", "1 + 2");
-        assertParsing("Double infix (left associativity)", "([+]:PLUS ([+]:PLUS [1]:NUMBER [2]:NUMBER) [3]:NUMBER)", "1 + 2 + 3");
-        assertParsing("Double infix with parenthesis", "([+]:PLUS [1]:NUMBER ([+]:PLUS [2]:NUMBER [3]:NUMBER))", "1 + (2 + 3)");
+        assertParsing("Simple infix", "([+]:ARITHMETIC [1]:NUMBER [2]:NUMBER)", "1 + 2");
+        assertParsing("Double infix (left associativity)", "([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER [2]:NUMBER) [3]:NUMBER)", "1 + 2 + 3");
+        assertParsing("Double infix with parenthesis", "([+]:ARITHMETIC [1]:NUMBER ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER))", "1 + (2 + 3)");
     }
 
     @Test
@@ -26,9 +32,9 @@ public class ParserTest {
         assertParsing("([abc]:FUNCTION [1]:NUMBER)", "abc(1)");
         assertParsing("([abc]:FUNCTION [1]:NUMBER [2]:NUMBER)", "abc(1, 2)");
         assertParsing("([abc]:FUNCTION [1]:NUMBER [2]:NUMBER [3]:NUMBER)", "abc(1, 2, 3)");
-        assertParsing("([+]:PLUS ([abc]:FUNCTION [4]:NUMBER) ([def]:FUNCTION [3]:NUMBER [2]:NUMBER))", "abc(4) + def(3, 2)");
-        assertParsing("([abc]:FUNCTION ([+]:PLUS ([+]:PLUS [2]:NUMBER [1]:NUMBER) [3]:NUMBER))", "abc((2 + 1) + 3)");
-        assertParsing("([+]:PLUS ([+]:PLUS ([+]:PLUS [1]:NUMBER ([abc]:FUNCTION ([+]:PLUS [2]:NUMBER [3]:NUMBER) [4]:NUMBER)) [5]:NUMBER) [6]:NUMBER)", "(1 + abc(2 + 3, 4) + 5) + 6");
+        assertParsing("([+]:ARITHMETIC ([abc]:FUNCTION [4]:NUMBER) ([def]:FUNCTION [3]:NUMBER [2]:NUMBER))", "abc(4) + def(3, 2)");
+        assertParsing("([abc]:FUNCTION ([+]:ARITHMETIC ([+]:ARITHMETIC [2]:NUMBER [1]:NUMBER) [3]:NUMBER))", "abc((2 + 1) + 3)");
+        assertParsing("([+]:ARITHMETIC ([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER ([abc]:FUNCTION ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER) [4]:NUMBER)) [5]:NUMBER) [6]:NUMBER)", "(1 + abc(2 + 3, 4) + 5) + 6");
         assertParsing("([abc]:FUNCTION ([def]:FUNCTION [1]:NUMBER) ([ghi]:FUNCTION [2]:NUMBER))", "abc(def(1), ghi(2))");
     }
 
@@ -73,7 +79,13 @@ public class ParserTest {
         // PRECEDENCE (What to parse first. Higher numbers means more precedence)
         int x = 1;
         final int ATOM = x++;
-        final int PLUS = x++;
+        final int OR = x++;
+        final int AND = x++;
+        final int NOT = x++;
+        final int EQUALS = x++;
+        final int MULTIPLY = x++;
+        final int SUM = x++;
+        final int GROUPING = x++;
         final int FUNCTION = x++;
         final int SELECT = x++;
 
@@ -115,113 +127,31 @@ public class ParserTest {
             }
         });
 
-        // NUMBER
-        parser.register(new Parselet(ATOM) {
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
+        // BOOLEAN
+        parser.register(new InfixParselet(OR, "\\b((?i)OR)\\b", "BOOLEAN"));
+        parser.register(new InfixParselet(AND, "\\b((?i)AND)\\b", "BOOLEAN"));
+        parser.register(new PrefixParselet(NOT, "\\b((?i)NOT)\\b", "BOOLEAN"));
 
-            @Override
-            public String startingRegularExpression() {
-                return "\\d+";
-            }
+        // ARITHMETIC
+        parser.register(new InfixParselet(MULTIPLY, "(\\*|/|%)", "ARITHMETIC"));
+        parser.register(new InfixParselet(SUM, "(\\+|-)", "ARITHMETIC"));
 
-            @Override
-            public Expression parse() {
-                return new Expression("NUMBER", originalMatchTrimmed());
-            }
-        });
-
-        // IDENTIFIER
-        parser.register(new Parselet(ATOM) {
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\w+|\\*";
-            }
-
-            @Override
-            public Expression parse() {
-                return new Expression("IDENTIFIER", originalMatchTrimmed());
-            }
-        });
-
-        // PLUS
-        parser.register(new Parselet(PLUS) {
-            @Override
-            protected boolean isLeftAssociativity() {
-                return true;
-            }
-
-            @Override
-            public boolean isPrefixParselet() {
-                return false;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\+";
-            }
-
-            @Override
-            public Expression parse() {
-                Expression result = new Expression("PLUS", originalMatchTrimmed());
-                result.addChildren(left(), right());
-                return result;
-            }
-        });
+        //EQUALS (OPERATOR)
+        parser.register(new InfixParselet(EQUALS, "=", "OPERATOR"));
 
         // GROUPING (parenthesis)
-        parser.register(new Parselet(FUNCTION) {
-            @Override
-            public boolean isPrefixParselet() {
-                return true;
-            }
-
-            @Override
-            public String startingRegularExpression() {
-                return "\\(";
-            }
-
-            @Override
-            public Expression parse() {
-                Expression result = right();
-                consumeIf("\\)");
-                return result;
-            }
-        });
+        parser.register(new GroupingParselet(GROUPING, "\\(", "\\)"));
 
         // FUNCTION
-        parser.register(new Parselet(FUNCTION) {
-            @Override
-            public boolean isPrefixParselet() {
-                return false;
-            }
+        parser.register(new BeforeMiddleAfterParselet(FUNCTION, "(\\w+)\\s*\\(", ",", "\\)", "FUNCTION"));
 
-            @Override
-            public String startingRegularExpression() {
-                return "\\(";
-            }
+        //NUMBER
+        parser.register(new AtomParselet(ATOM, "\\d+(?:\\.\\d+)?", "NUMBER"));
 
-            @Override
-            public Expression parse() {
-                Expression result = new Expression("FUNCTION", left().getValue());
+        //STRING
+        parser.register(new AtomParselet(ATOM, "\\'[^\\']*?\\'", "STRING"));
 
-                if (canConsume("\\)")) return result;
-
-                do {
-                    result.addChildren(nextExpression());
-                } while (canConsume(","));
-
-                consumeIf("\\)");
-
-                return result;
-            }
-        });
+        //IDENTIFIER
+        parser.register(new AtomParselet(ATOM, "(\\w+\\.\\w+|\\w+|\\*)", "IDENTIFIER"));
     }
 }
