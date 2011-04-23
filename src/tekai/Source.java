@@ -9,6 +9,7 @@ class Source {
     private int cursor = 0;
     private int newCursor = 0;
     private String lastMatch;
+    private String lastSpacing;
 
     public Source(CharSequence source) {
         this.source = source == null ? "" : source;
@@ -17,13 +18,14 @@ class Source {
     public boolean matches(String regularExpression) {
         if (cursor >= source.length()) return false;
 
-        Pattern pattern = Pattern.compile("^\\s*" + regularExpression);
+        Pattern pattern = Pattern.compile("^(\\s*)(" + regularExpression + ")");
         Matcher matcher = pattern.matcher(source);
         matcher.useAnchoringBounds(true);
         matcher.region(cursor, source.length());
 
         if (!matcher.find()) return false;
 
+        lastSpacing = matcher.group(1);
         lastMatch = lastMatchedGroup(matcher);
         newCursor = matcher.end();
 
@@ -31,10 +33,10 @@ class Source {
     }
 
     private String lastMatchedGroup(Matcher matcher) {
-        for (int i = matcher.groupCount(); i >= 0; i--)
+        for (int i = matcher.groupCount(); i >= 3; i--)
             if (matcher.group(i) != null) return matcher.group(i);
 
-        return matcher.group(0);
+        return matcher.group(2);
     }
 
     public boolean canConsume(String regularExpression) {
@@ -71,6 +73,6 @@ class Source {
      * </p>
      */
     public String lastMatch() {
-        return lastMatch == null ? "" : lastMatch;
+        return lastMatch == null ? "" : lastSpacing + lastMatch;
     }
 }

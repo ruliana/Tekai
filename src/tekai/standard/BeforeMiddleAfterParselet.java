@@ -36,7 +36,7 @@ public class BeforeMiddleAfterParselet extends Parselet {
 
     @Override
     protected Expression parse() {
-        Expression result = new Expression(type, lastMatchTrimmed());
+        Expression result = new Expression(type, lastMatch());
 
         if (endingRegularExpression != null && canConsume(endingRegularExpression)) return result;
 

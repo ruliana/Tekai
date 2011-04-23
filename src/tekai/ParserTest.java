@@ -37,6 +37,22 @@ public class ParserTest {
         assertParsing("([+]:ARITHMETIC ([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER ([abc]:FUNCTION ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER) [4]:NUMBER)) [5]:NUMBER) [6]:NUMBER)", "(1 + abc(2 + 3, 4) + 5) + 6");
         assertParsing("([abc]:FUNCTION ([def]:FUNCTION [1]:NUMBER) ([ghi]:FUNCTION [2]:NUMBER))", "abc(def(1), ghi(2))");
     }
+    
+    @Test
+    public void preserveSpaces() {
+        Expression expression = parse("  1 +   2");
+        assertEquals(" ", expression.getSpacing());
+        assertEquals("  ", expression.getChild(0).getSpacing());
+        assertEquals("   ", expression.getChild(1).getSpacing());
+    }
+    
+    @Test
+    public void preserveTabsAndLineBreaks() {
+        Expression expression = parse("1\t + \n2");
+        assertEquals("\t ", expression.getSpacing());
+        assertEquals("", expression.getChild(0).getSpacing());
+        assertEquals(" \n", expression.getChild(1).getSpacing());
+    }
 
     @Test
     public void selectFrom() {
@@ -71,8 +87,7 @@ public class ParserTest {
     private Expression parse(String source) {
         Parser parser = new Parser(source);
         configureParser(parser);
-        Expression expression = parser.parse();
-        return expression;
+        return parser.parse();
     }
 
     private void configureParser(Parser parser) {
@@ -114,7 +129,7 @@ public class ParserTest {
                 from.addChildren(nextExpression());
 
                 if (canConsume("INNER( OUTER|RIGHT)? JOIN")) {
-                    Expression join = new Expression("JOIN", lastMatchTrimmed());
+                    Expression join = new Expression("JOIN", lastMatch());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
                     join.addChildren(nextExpression());

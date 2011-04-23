@@ -252,10 +252,10 @@ public class ParserTest {
             public Expression parse() {
                 Expression result = new Expression("SQL", "SQL");
 
-                Expression fields = new Expression("SELECT", lastMatchTrimmed());
+                Expression fields = new Expression("SELECT", lastMatch());
 
                 if(canConsume("\\b((?i)DISTINCT)\\b")){
-                    fields.addChildren(new Expression("DISTINCT", lastMatchTrimmed()));
+                    fields.addChildren(new Expression("DISTINCT", lastMatch()));
                 }
 
                 do {
@@ -276,7 +276,7 @@ public class ParserTest {
                 } while(canConsume("\\,"));
 
                 while (canConsume("\\b((?i)INNER(?: OUTER|RIGHT|LEFT)? JOIN)\\b")) {
-                    Expression join = new Expression("JOIN", lastMatchTrimmed());
+                    Expression join = new Expression("JOIN", lastMatch());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
                     join.addChildren(nextExpression());
@@ -315,7 +315,7 @@ public class ParserTest {
                     } while(canConsume("\\,"));
 
                     if(canConsume("\\b((?i)ASC|DESC)\\b"))
-                        order.addChildren(new Expression("ORDERING", lastMatchTrimmed()));
+                        order.addChildren(new Expression("ORDERING", lastMatch()));
 
                     result.addChildren(order);
                 }
@@ -350,7 +350,7 @@ public class ParserTest {
 
             @Override
             protected Expression parse() {
-                Expression ecase = new Expression("CASE", lastMatchTrimmed());
+                Expression ecase = new Expression("CASE", lastMatch());
 
                 do{
                     if(canConsume("\\b((?i)WHEN)\\b")){

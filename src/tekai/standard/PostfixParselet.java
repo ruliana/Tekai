@@ -26,7 +26,7 @@ public class PostfixParselet extends Parselet {
 
     @Override
     protected Expression parse() {
-        Expression result = new Expression(type, lastMatchTrimmed());
+        Expression result = new Expression(type, lastMatch());
         result.addChildren(left());
         return result;
     }

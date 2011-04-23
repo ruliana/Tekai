@@ -26,6 +26,6 @@ public class AtomParselet extends Parselet {
 
     @Override
     protected Expression parse() {
-        return new Expression(type, lastMatchTrimmed());
+        return new Expression(type, lastMatch());
     }
 }

@@ -6,9 +6,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Expression {
 
+    private final String spacing;
     private final String type;
     private final String value;
     private List<Expression> children = new LinkedList<Expression>();
@@ -16,8 +19,16 @@ public class Expression {
     // == Construction
 
     public Expression(String type, String value) {
+        Pattern pattern = Pattern.compile("^(\\s*)(.*)");
+        Matcher matcher = pattern.matcher(value);
+        if (matcher.find()) {
+            this.spacing = matcher.group(1);
+            this.value = matcher.group(2);
+        } else {
+            this.spacing = "";
+            this.value = matcher.group(2);
+        }
         this.type = type;
-        this.value = value;
     }
 
     public void addChildren(Expression... expressions) {
@@ -49,8 +60,23 @@ public class Expression {
         return type;
     }
 
+    public String getSpacing() {
+        return spacing;
+    }
+
+    /**
+     * {@link #getSpacing()} + {@link #getValue()}
+     */
+    public String printValue() {
+        return getSpacing() + getValue();
+    }
+    
     public List<Expression> getChildren() {
       return Collections.unmodifiableList(children);
+    }
+
+    public Expression getChild(int i) {
+        return children.get(i);
     }
 
     // == Inspection ==
