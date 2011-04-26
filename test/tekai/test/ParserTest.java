@@ -2,6 +2,7 @@ package tekai.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static tekai.Helpers.word;
 
 import java.util.regex.Pattern;
 
@@ -245,7 +246,7 @@ public class ParserTest {
 
             @Override
             public String startingRegularExpression() {
-                return "\\b((?i)SELECT)\\b";
+                return word("select");
             }
 
             @Override
@@ -416,6 +417,5 @@ public class ParserTest {
 
         //IDENTIFIER
         parser.register(new AtomParselet(ATOM, "(\\w+\\.\\w+|\\w+|\\*)", "IDENTIFIER"));
-
     }
 }
