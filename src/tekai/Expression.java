@@ -72,7 +72,7 @@ public class Expression {
     }
     
     public List<Expression> getChildren() {
-      return Collections.unmodifiableList(children);
+      return children;
     }
 
     public Expression getChild(int i) {

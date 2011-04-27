@@ -45,6 +45,20 @@ public class TranformationTest {
         assertEquals("([SUBSTRING]:FUNCTION [0]:NUMBER [4]:NUMBER)", result.toString());
     }
 
+    /**
+     * Converte a Função CAST(campo as VARCHAR) do Postgres para Oracle
+     * o VARCHAR:DATATYPE do Postgres deve passar para VARCHAR2:DATATYPE
+     */
+    @Test
+    public void cast(){
+
+       Expression e = e("CAST", "FUCNTION",
+               e("campo", "IDENTIFIER"),
+               e("VARCHAR", "DATATYPE"));
+
+       assertEquals("([CAST]:FUNCTION [campo]:IDENTIFIER [VARCHAR2]:DATATYPE)", null );
+    }
+
     private Transformation removeTransformation() {
         return new Transformation() {
             @Override
