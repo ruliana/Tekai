@@ -2,6 +2,7 @@ package tekai;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static tekai.Helpers.word;
 
 import org.junit.Test;
 
@@ -37,7 +38,7 @@ public class ParserTest {
         assertParsing("([+]:ARITHMETIC ([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER ([abc]:FUNCTION ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER) [4]:NUMBER)) [5]:NUMBER) [6]:NUMBER)", "(1 + abc(2 + 3, 4) + 5) + 6");
         assertParsing("([abc]:FUNCTION ([def]:FUNCTION [1]:NUMBER) ([ghi]:FUNCTION [2]:NUMBER))", "abc(def(1), ghi(2))");
     }
-    
+
     @Test
     public void preserveSpaces() {
         Expression expression = parse("  1 +   2");
@@ -45,7 +46,7 @@ public class ParserTest {
         assertEquals("  ", expression.getChild(0).getSpacing());
         assertEquals("   ", expression.getChild(1).getSpacing());
     }
-    
+
     @Test
     public void preserveTabsAndLineBreaks() {
         Expression expression = parse("1\t + \n2");
@@ -143,9 +144,9 @@ public class ParserTest {
         });
 
         // BOOLEAN
-        parser.register(new InfixParselet(OR, "\\b((?i)OR)\\b", "BOOLEAN"));
-        parser.register(new InfixParselet(AND, "\\b((?i)AND)\\b", "BOOLEAN"));
-        parser.register(new PrefixParselet(NOT, "\\b((?i)NOT)\\b", "BOOLEAN"));
+        parser.register(new InfixParselet(OR, word("OR"), "BOOLEAN"));
+        parser.register(new InfixParselet(AND, word("AND"), "BOOLEAN"));
+        parser.register(new PrefixParselet(NOT, word("NOT"), "BOOLEAN"));
 
         // ARITHMETIC
         parser.register(new InfixParselet(MULTIPLY, "(\\*|/|%)", "ARITHMETIC"));

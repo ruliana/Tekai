@@ -1,14 +1,17 @@
 package tekai.test;
 
-import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static tekai.Expression.e;
 
+import java.util.Iterator;
+import java.util.List;
+
 import org.junit.Test;
+
 import tekai.Expression;
 
 public class PrinterTest {
-    
+
     ParserTest p;
     String sql;
 
@@ -115,55 +118,68 @@ public class PrinterTest {
 
     @Test
     public void testParenthesis(){
-        sql = "1 +(2 * (3 - 1))";
+        sql = "1 + (2 * (3 - 1))";
         assertEquals(sql, print(p.parse(sql)));
     }
 
     private String print(Expression e) {
-        if(e.isType("SQL")){
+        if (e.isType("SQL")) {
             return printChildren(e.getChildren(), "");
-        }else if(e.isType("SELECT")){
-            if(e.getChild(0).isType("DISTINCT")){
+        } else if (e.isType("SELECT")) {
+            if (e.getChild(0).isType("DISTINCT")) {
                 return e.printValue() + print(e.getChildren().remove(0)) + printChildren(e.getChildren());
-            } else
+            } else {
                 return e.printValue() + printChildren(e.getChildren());
-        }
-        else if(e.isType("FROM") || e.isType("GROUP") || e.isType("ORDER")){
+            }
+        } else if (e.isType("FROM") || e.isType("GROUP") || e.isType("ORDER")) {
             return e.printValue() + printChildren(e.getChildren());
-        }
-        else if(e.isType("LIMIT") || e.isType("OFFSET") || e.isType("CASE") || e.isType("WHEN")
-                || e.isType("WHERE") || e.isType("THEN") || e.isType("ELSE") || e.isType("NOT")){
+        } else if (e.isType("LIMIT")
+                        || e.isType("OFFSET")
+                        || e.isType("CASE")
+                        || e.isType("WHEN")
+                        || e.isType("WHERE")
+                        || e.isType("THEN")
+                        || e.isType("ELSE")
+                        || e.isType("NOT")) {
             return e.printValue() + printChildren(e.getChildren(), "");
-        }
-        else if(e.isType("CONCAT")){
+        } else if (e.isType("CONCAT")) {
             return printChildren(e.getChildren(), e.printValue());
-        }
-        else if(e.isType("FUNCTION")){
+        } else if (e.isType("PARENTHESIS")) {
+            return e.printValue() + printChildren(e.getChildren()) + ")";
+        } else if (e.isType("FUNCTION")) {
             StringBuilder result = new StringBuilder();
             result.append(e.printValue()).append("(");
             result.append(printChildren(e.getChildren()));
             return result.append(")").toString();
-        }
-        else if (e.isType("ARITHMETIC") || e.isType("BOOLEAN") || e.isType("LIKE")
-                || e.isType("ALIAS") || e.isType("OPERATOR")) {
+        } else if (e.isType("ARITHMETIC")
+                        || e.isType("BOOLEAN")
+                        || e.isType("LIKE")
+                        || e.isType("ALIAS")
+                        || e.isType("OPERATOR")) {
             return print(e.getChild(0)) + e.printValue() + print(e.getChild(1));
-        }
-        else if(e.isType("ORDERING")){
+        } else if (e.isType("ORDERING")) {
             return print(e.getChild(0)) + e.printValue();
+        } else {
+            return e.printValue();
         }
-        else return e.printValue();
     }
 
-    private String printChildren(List<Expression> e){
+    private String printChildren(List<Expression> e) {
         return printChildren(e, ",");
     }
 
-    private String printChildren(List<Expression> e, String separator){
+    private String printChildren(List<Expression> e, String separator) {
         StringBuilder result = new StringBuilder();
-        for (int i = 0; i < e.size(); i++) {
-            result.append(print(e.get(i)));
-            if(i<e.size()-1)result.append(separator);
-        }return result.toString();
-    }
 
+        Iterator<Expression> iterator = e.iterator();
+        if (iterator.hasNext())
+            result.append(print(iterator.next()));
+
+        while (iterator.hasNext()) {
+            result.append(separator);
+            result.append(print(iterator.next()));
+        }
+
+        return result.toString();
+    }
 }

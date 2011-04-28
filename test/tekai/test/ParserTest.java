@@ -13,7 +13,6 @@ import tekai.Parselet;
 import tekai.Parser;
 import tekai.standard.AtomParselet;
 import tekai.standard.BeforeMiddleAfterParselet;
-import tekai.standard.GroupingParselet;
 import tekai.standard.InfixParselet;
 import tekai.standard.PostfixParselet;
 import tekai.standard.PrefixParselet;
@@ -30,7 +29,7 @@ public class ParserTest {
     public void simpleExpression() {
         assertParsing("Simple infix", "([+]:ARITHMETIC [1]:NUMBER [2]:NUMBER)", "1 + 2");
         assertParsing("Double infix (left associativity)", "([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER [2]:NUMBER) [3]:NUMBER)", "1 + 2 + 3");
-        assertParsing("Double infix with parenthesis", "([+]:ARITHMETIC [1]:NUMBER ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER))", "1 + (2 + 3)");
+        assertParsing("Double infix with parenthesis", "([+]:ARITHMETIC [1]:NUMBER ([(]:PARENTHESIS ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER)))", "1 + (2 + 3)");
     }
 
     @Test
@@ -40,8 +39,8 @@ public class ParserTest {
         assertParsing("([abc]:FUNCTION [1]:NUMBER [2]:NUMBER)", "abc(1, 2)");
         assertParsing("([abc]:FUNCTION [1]:NUMBER [2]:NUMBER [3]:NUMBER)", "abc(1, 2, 3)");
         assertParsing("([+]:ARITHMETIC ([abc]:FUNCTION [4]:NUMBER) ([def]:FUNCTION [3]:NUMBER [2]:NUMBER))", "abc(4) + def(3, 2)");
-        assertParsing("([abc]:FUNCTION ([+]:ARITHMETIC ([+]:ARITHMETIC [2]:NUMBER [1]:NUMBER) [3]:NUMBER))", "abc((2 + 1) + 3)");
-        assertParsing("([+]:ARITHMETIC ([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER ([abc]:FUNCTION ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER) [4]:NUMBER)) [5]:NUMBER) [6]:NUMBER)", "(1 + abc(2 + 3, 4) + 5) + 6");
+        assertParsing("([abc]:FUNCTION ([+]:ARITHMETIC ([(]:PARENTHESIS ([+]:ARITHMETIC [2]:NUMBER [1]:NUMBER)) [3]:NUMBER))", "abc((2 + 1) + 3)");
+        assertParsing("([+]:ARITHMETIC ([(]:PARENTHESIS ([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER ([abc]:FUNCTION ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER) [4]:NUMBER)) [5]:NUMBER)) [6]:NUMBER)", "(1 + abc(2 + 3, 4) + 5) + 6");
         assertParsing("([abc]:FUNCTION ([def]:FUNCTION [1]:NUMBER) ([ghi]:FUNCTION [2]:NUMBER))", "abc(def(1), ghi(2))");
     }
 
@@ -65,7 +64,7 @@ public class ParserTest {
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([OR]:BOOLEAN ([AND]:BOOLEAN ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER) ([=]:OPERATOR [id]:IDENTIFIER [3]:NUMBER)) ([=]:OPERATOR [campo]:IDENTIFIER [5.5]:NUMBER))))",
             "SELECT * FROM tabela WHERE campo = 2 AND id = 3 OR campo = 5.5");
 
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([OR]:BOOLEAN ([AND]:BOOLEAN ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER) ([=]:OPERATOR [id]:IDENTIFIER [35.89]:NUMBER)) ([=]:OPERATOR [campo]:IDENTIFIER [5]:NUMBER))))",
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([OR]:BOOLEAN ([AND]:BOOLEAN ([(]:PARENTHESIS ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)) ([=]:OPERATOR [id]:IDENTIFIER [35.89]:NUMBER)) ([(]:PARENTHESIS ([=]:OPERATOR [campo]:IDENTIFIER [5]:NUMBER)))))",
             "SELECT * FROM tabela WHERE (campo = 2) AND id = 35.89 OR (campo = 5)");
     }
 
@@ -201,8 +200,6 @@ public class ParserTest {
         }
     }
 
-
-
     // == Helpers ==
 
     private void assertParsing(String expected, String source) {
@@ -257,28 +254,28 @@ public class ParserTest {
 
                 Expression fields = new Expression("SELECT", "SELECT");
 
-                if(canConsume("\\b((?i)DISTINCT)\\b")){
+                if(canConsume(word("DISTINCT"))){
                     fields.addChildren(new Expression("DISTINCT", lastMatch()));
                 }
 
                 do {
                     Expression field = nextExpression();
                     if (field.isType("OPERATOR")) {
-                        Expression substitute = new Expression("ALIAS", field.getValue());
+                        Expression substitute = new Expression("ALIAS", field.printValue());
                         substitute.addChildren(field.getChildren());
                         field = substitute;
                     }
                     fields.addChildren(field);
-                } while (canConsume("\\,"));
+                } while (canConsume(","));
 
-                consumeIf("\\b((?i)FROM)\\b");
+                consumeIf(word("FROM"));
 
                 Expression from = new Expression("FROM", lastMatch());
                 do {
                     from.addChildren(nextExpression());
-                } while(canConsume("\\,"));
+                } while(canConsume(","));
 
-                while (canConsume("\\b((?i)INNER(?: OUTER|RIGHT|LEFT)? JOIN)\\b")) {
+                while (canConsume(word("INNER(?: OUTER|RIGHT|LEFT)? JOIN"))) {
                     Expression join = new Expression("JOIN", lastMatch());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
@@ -287,17 +284,17 @@ public class ParserTest {
                 }
                 result.addChildren(fields, from);
 
-                if(canConsume("\\b((?i)WHERE)\\b")){
+                if(canConsume(word("WHERE"))){
                     Expression where = new Expression("WHERE", lastMatch());
                     where.addChildren(nextExpression());
                    result.addChildren(where);
                 }
 
-                if(canConsume("\\b((?i)GROUP\\s+BY)\\b")){
+                if(canConsume(word("GROUP BY"))){
                     Expression group = new Expression("GROUP", lastMatch());
                     do{
                         group.addChildren(nextExpression());
-                    }while(canConsume("\\,"));
+                    }while(canConsume(","));
                     result.addChildren(group);
                 }
 
@@ -311,22 +308,22 @@ public class ParserTest {
                     result.addChildren(having);
                 }*/
 
-                if(canConsume("\\b((?i)ORDER\\s+BY)\\b")){
+                if(canConsume(word("ORDER BY"))){
                     Expression order = new Expression("ORDER", lastMatch());
                     do {
                         Expression descOrder = nextExpression();
                         //if(canConsume("\\b((?i)ASC|DESC)\\b"))
                          //   descOrder.addChildren(new Expression("ORDERING", lastMatch()));
                         order.addChildren(descOrder);
-                    } while(canConsume("\\,"));
+                    } while(canConsume(","));
 
                     result.addChildren(order);
                 }
 
-                if(canConsume("\\b((?i)LIMIT)\\b")){
+                if(canConsume(word("LIMIT"))){
                     Expression limit = new Expression("LIMIT", lastMatch());
                     limit.addChildren(nextExpression());
-                    if(canConsume("\\b((?i)OFFSET)\\b")){
+                    if(canConsume(word("OFFSET"))){
                         Expression offset = new Expression("OFFSET", lastMatch());
                         offset.addChildren(nextExpression());
                         limit.addChildren(offset);
@@ -348,7 +345,7 @@ public class ParserTest {
 
             @Override
             public String startingRegularExpression() {
-                return "\\b((?i)CASE)\\b";
+                return word("CASE");
             }
 
             @Override
@@ -356,22 +353,22 @@ public class ParserTest {
                 Expression ecase = new Expression("CASE", lastMatch());
 
                 do{
-                    if(canConsume("\\b((?i)WHEN)\\b")){
+                    if(canConsume(word("WHEN"))){
                         Expression when = new Expression("WHEN", lastMatch());
                         when.addChildren(nextExpression());
 
-                        consumeIf("\\b((?i)THEN)\\b");
+                        consumeIf(word("THEN"));
                         Expression then = new Expression("THEN", lastMatch());
                         then.addChildren(nextExpression());
                         when.addChildren(then);
                         ecase.addChildren(when);
-                    }else if(canConsume("\\b((?i)ELSE)\\b")){
+                    }else if(canConsume(word("ELSE"))){
                         Expression eelse = new Expression("ELSE", lastMatch());
                         eelse.addChildren(nextExpression());
                         ecase.addChildren(eelse);
                     }else
                         ecase.addChildren(nextExpression());
-                }while(cannotConsume("\\b((?i)END)\\b"));
+                }while(cannotConsume(word("END")));
                 ecase.addChildren(new Expression("END", lastMatch()));
 
                 return ecase;
@@ -379,19 +376,19 @@ public class ParserTest {
         });
 
         // BOOLEAN
-        parser.register(new InfixParselet(OR, "\\b((?i)OR)\\b", "BOOLEAN"));
-        parser.register(new InfixParselet(AND, "\\b((?i)AND)\\b", "BOOLEAN"));
-        parser.register(new PrefixParselet(NOT, "\\b((?i)NOT)\\b", "NOT"));
+        parser.register(new InfixParselet(OR, word("OR"), "BOOLEAN"));
+        parser.register(new InfixParselet(AND, word("AND"), "BOOLEAN"));
+        parser.register(new PrefixParselet(NOT, word("NOT"), "NOT"));
 
         //LIKE
-        parser.register(new InfixParselet(LIKE, "\\b((?i)LIKE)\\b", "LIKE"));
+        parser.register(new InfixParselet(LIKE, word("LIKE"), "LIKE"));
 
         // ARITHMETIC
         parser.register(new InfixParselet(MULTIPLY, "(\\*|/|%)", "ARITHMETIC"));
         parser.register(new InfixParselet(SUM, "(\\+|-)", "ARITHMETIC"));
 
         //ALIAS
-        parser.register(new InfixParselet(ATOM, "\\b((?i)AS)\\b", "ALIAS"));
+        parser.register(new InfixParselet(ATOM, word("AS"), "ALIAS"));
 
         //EQUALS (OPERATOR)
         parser.register(new InfixParselet(EQUALS, "=", "OPERATOR"));
@@ -400,11 +397,12 @@ public class ParserTest {
         parser.register(new BeforeMiddleAfterParselet(ATOM, null, "\\|\\|", null, "CONCAT"));
 
         //GROUP BY
-        parser.register(new BeforeMiddleAfterParselet(GROUP, "\\b((?i)GROUP\\s+BY)\\b", "\\,", null, "GROUPBY"));
+        parser.register(new BeforeMiddleAfterParselet(GROUP, word("GROUP BY"), "\\,", null, "GROUPBY"));
         //parser.register(new BeforeMiddleAfterParselet(ORDER, "\\b((?i)HAVING)\\b", "\\,", null, "HAVING"));
 
         // GROUPING (parenthesis)
-        parser.register(new GroupingParselet(GROUPING, "\\(", "\\)"));
+        //parser.register(new GroupingParselet(GROUPING, "\\(", "\\)"));
+        parser.register(new BeforeMiddleAfterParselet(GROUPING, "\\(", null, "\\)", "PARENTHESIS"));
 
         // FUNCTION
         parser.register(new BeforeMiddleAfterParselet(FUNCTION, "(\\w+)\\s*\\(", ",", "\\)", "FUNCTION"));
@@ -413,7 +411,7 @@ public class ParserTest {
         //parser.register(new BeforeMiddleAfterParselet(ORDER, "\\b((?i)ORDER\\s+BY)\\b", ",", "(\\b((?i)ASC)\\b|\\b((?i)DESC)\\b)?", "ORDER BY"));
 
         //POSTFIX ASC DESC
-        parser.register(new PostfixParselet(POS, "\\b((?i)ASC|DESC)\\b", "ORDERING"));
+        parser.register(new PostfixParselet(POS, word("ASC|DESC"), "ORDERING"));
         //NUMBER
         parser.register(new AtomParselet(ATOM, "\\d+(?:\\.\\d+)?", "NUMBER"));
 

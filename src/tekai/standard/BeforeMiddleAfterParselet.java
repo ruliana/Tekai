@@ -18,6 +18,7 @@ public class BeforeMiddleAfterParselet extends Parselet {
         this.type = type;
     }
 
+    @Override
     public boolean isLeftAssociativity() {
       return startingRegularExpression == null;
     }
@@ -42,7 +43,9 @@ public class BeforeMiddleAfterParselet extends Parselet {
 
         if (startingRegularExpression == null) result.addChildren(left());
 
-        if (interpolationRegularExpression != null) {
+        if (interpolationRegularExpression == null) {
+            result.addChildren(nextExpression());
+        } else {
             do {
                 result.addChildren(nextExpression());
             } while (canConsume(interpolationRegularExpression));

@@ -2,7 +2,6 @@ package tekai;
 
 import static java.util.Arrays.asList;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,7 +69,7 @@ public class Expression {
     public String printValue() {
         return getSpacing() + getValue();
     }
-    
+
     public List<Expression> getChildren() {
       return children;
     }

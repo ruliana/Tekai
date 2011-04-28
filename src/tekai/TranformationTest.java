@@ -2,10 +2,12 @@ package tekai;
 
 import static org.junit.Assert.assertEquals;
 import static tekai.Expression.e;
-
-import java.util.List;
+import static tekai.standard.CommonTransformation.from;
+import static tekai.standard.CommonTransformation.fromType;
 
 import org.junit.Test;
+
+import tekai.standard.MultiTransformation;
 
 public class TranformationTest {
 
@@ -16,7 +18,8 @@ public class TranformationTest {
                         e("0", "NUMBER"),
                         e("4", "NUMBER"));
 
-        Expression result = renameTransformation().applyOn(expression);
+        Transformation transformation = from("SUBSTRING", "FUNCTION").toValue("SUBSTR");
+        Expression result = transformation.applyOn(expression);
 
         assertEquals("([SUBSTR]:FUNCTION ['Some text']:STRING [0]:NUMBER [4]:NUMBER)", result.toString());
     }
@@ -28,7 +31,8 @@ public class TranformationTest {
                         e("0", "NUMBER"),
                         e("4", "NUMBER"));
 
-        Expression result = changeParameterOrderTransformation().applyOn(expression);
+        Transformation transformation = from("SUBSTRING", "FUNCTION").toParamOrder(1, 3, 2);
+        Expression result = transformation.applyOn(expression);
 
         assertEquals("([SUBSTRING]:FUNCTION ['Some text']:STRING [4]:NUMBER [0]:NUMBER)", result.toString());
     }
@@ -40,7 +44,8 @@ public class TranformationTest {
                         e("0", "NUMBER"),
                         e("4", "NUMBER"));
 
-        Expression result = removeTransformation().applyOn(expression);
+        Transformation transformation = fromType("STRING").toNothing();
+        Expression result = transformation.applyOn(expression);
 
         assertEquals("([SUBSTRING]:FUNCTION [0]:NUMBER [4]:NUMBER)", result.toString());
     }
@@ -52,54 +57,32 @@ public class TranformationTest {
     @Test
     public void cast(){
 
-       Expression e = e("CAST", "FUCNTION",
+       Expression expression = e("CAST", "FUNCTION",
                e("campo", "IDENTIFIER"),
                e("VARCHAR", "DATATYPE"));
 
-       assertEquals("([CAST]:FUNCTION [campo]:IDENTIFIER [VARCHAR2]:DATATYPE)", null );
+
+       Transformation transformation = from("VARCHAR", "DATATYPE").toValue("VARCHAR2");
+       Expression result = transformation.applyOn(expression);
+
+       assertEquals("([CAST]:FUNCTION [campo]:IDENTIFIER [VARCHAR2]:DATATYPE)", result.toString());
     }
 
-    private Transformation removeTransformation() {
-        return new Transformation() {
-            @Override
-            public boolean when(Expression expression) {
-                return expression.isType("STRING");
-            }
+    /**
+     * Converte a função CAST do Oracle em CONVERT do SqlServer
+     */
+    @Test
+    public void castToConvert() {
+        MultiTransformation t = new MultiTransformation();
+        t.register(from("CAST", "FUNCTION").toValue("CONVERT").toParamOrder(2, 1));
+        t.register(from("VARCHAR2", "DATATYPE").toValue("VARCHAR"));
 
-            @Override
-            public Expression then(String value, String type, List<Expression> children) {
-                return null;
-            }
-        };
-    }
+        Expression expression = e("CAST", "FUNCTION",
+                        e("campo", "IDENTIFIER"),
+                        e("VARCHAR2", "DATATYPE"));
 
-    // == Helpers ==
+        Expression result = t.applyOn(expression);
 
-    private Transformation renameTransformation() {
-        return new Transformation() {
-            @Override
-            public boolean when(Expression expression) {
-                return expression.isType("FUNCTION") && expression.hasValue("SUBSTRING");
-            }
-
-            @Override
-            public Expression then(String value, String type, List<Expression> children) {
-                return e("SUBSTR", type, children);
-            }
-        };
-    }
-
-    private Transformation changeParameterOrderTransformation() {
-        return new Transformation() {
-            @Override
-            public boolean when(Expression expression) {
-                return expression.isType("FUNCTION") && expression.hasValue("SUBSTRING");
-            }
-
-            @Override
-            public Expression then(String value, String type, List<Expression> children) {
-                return e(value, type, children.get(0), children.get(2), children.get(1));
-            }
-        };
+        assertEquals("([CONVERT]:FUNCTION [VARCHAR]:DATATYPE [campo]:IDENTIFIER)", result.toString());
     }
 }
