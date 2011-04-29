@@ -87,4 +87,17 @@ public class TranformationTest {
 
         assertEquals("([CONVERT]:FUNCTION [VARCHAR]:DATATYPE [campo]:IDENTIFIER)", result.toString());
     }
+
+    @Test
+    public void concat(){
+         Expression expression = e("||", "CONCAT",
+               e("campo", "IDENTIFIER"),
+               e("campo2", "IDENTIFIER"));
+
+
+       Transformation transformation = from("\\|\\|", "CONCAT").toValue("CONCAT").toType("FUNCTION");
+       Expression result = transformation.applyOn(expression);
+
+       assertEquals("([CONCAT]:FUNCTION [campo]:IDENTIFIER [campo2]:IDENTIFIER)", result.toString());
+    }
 }

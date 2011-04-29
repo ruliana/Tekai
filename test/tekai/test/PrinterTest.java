@@ -2,6 +2,7 @@ package tekai.test;
 
 import static org.junit.Assert.assertEquals;
 import static tekai.Expression.e;
+import static tekai.Helpers.word;
 
 import java.util.Iterator;
 import java.util.List;
@@ -32,11 +33,19 @@ public class PrinterTest {
     public void testFrom(){
         sql = "SELECT campo FROM tabela";
         assertEquals(sql, print(p.parse(sql)));
-        sql = "SELECT getdate(), campo, campo2,  campo3  FROM  tabela, tabela3";
-        assertEquals(sql, print(p.parse(sql)));
         sql = "SELECT tabela.xx10 AS campo1, campo2,  campo3  FROM  tabela as tb1, tabela3";
         assertEquals(sql, print(p.parse(sql)));
         sql = "SELECT DISTINCT campo FROM tabela";
+        assertEquals(sql, print(p.parse(sql)));
+    }
+
+    @Test
+    public void functions(){
+        sql = "SELECT getdate(), campo, campo2,  campo3  FROM  tabela, tabela3";
+        assertEquals(sql, print(p.parse(sql)));
+        sql = "SELECT POSITION('abc' IN campo2) FROM  tabela";
+        assertEquals(sql, print(p.parse(sql)));
+        sql = "SELECT cast(campo3 as VARCHAR) FROM  tabela";
         assertEquals(sql, print(p.parse(sql)));
     }
 
@@ -107,12 +116,12 @@ public class PrinterTest {
             + "        chave_acesso = '                              ', "
             + "        data_acesso = '00/00/0000 00:00:00', "
             + "        X040.docto2 AS inscricao "
-            + " FROM ACT12000 AS C120 "
+            + " FROM ACT12000 AS C120"
             + " INNER JOIN AXT04000 AS X040 ON X040.idnome = C120.idnome "
             + "   INNER JOIN AXT02000 AS X020A ON X020A.idparametro = C120.sitsis "
             + "   INNER JOIN AXT02000 AS X020B ON X020B.idparametro = C120.sitcom "
             + "   INNER JOIN AXT02000 AS X020C ON X020C.idparametro = C120.sitlas "
-            + "   INNER JOIN AXT03000 AS X030  ON X030.idcidade     = X040.idcidade ";
+            + "   INNER JOIN AXT03000 AS X030  ON X030.idcidade     = X040.idcidade";
         assertEquals(sql, print(p.parse(sql)));
     }
 
@@ -131,7 +140,9 @@ public class PrinterTest {
             } else {
                 return e.printValue() + printChildren(e.getChildren());
             }
-        } else if (e.isType("FROM") || e.isType("GROUP") || e.isType("ORDER")) {
+        } else if(e.isType("FROM")) {
+            return e.printValue() + printFrom(e.getChildren());
+        } else if (e.isType("GROUP") || e.isType("ORDER")) {
             return e.printValue() + printChildren(e.getChildren());
         } else if (e.isType("LIMIT")
                         || e.isType("OFFSET")
@@ -140,7 +151,9 @@ public class PrinterTest {
                         || e.isType("WHERE")
                         || e.isType("THEN")
                         || e.isType("ELSE")
-                        || e.isType("NOT")) {
+                        || e.isType("NOT")
+                        || e.isType("JOIN")
+                        || e.isType("ON")) {
             return e.printValue() + printChildren(e.getChildren(), "");
         } else if (e.isType("CONCAT")) {
             return printChildren(e.getChildren(), e.printValue());
@@ -148,8 +161,9 @@ public class PrinterTest {
             return e.printValue() + printChildren(e.getChildren()) + ")";
         } else if (e.isType("FUNCTION")) {
             StringBuilder result = new StringBuilder();
+            String separator = (e.hasValue(word("POSITION")) ? " IN" : ",");
             result.append(e.printValue()).append("(");
-            result.append(printChildren(e.getChildren()));
+            result.append(printChildren(e.getChildren(), separator));
             return result.append(")").toString();
         } else if (e.isType("ARITHMETIC")
                         || e.isType("BOOLEAN")
@@ -162,6 +176,22 @@ public class PrinterTest {
         } else {
             return e.printValue();
         }
+    }
+
+     protected String printFrom(List<Expression> e) {
+        StringBuilder result = new StringBuilder();
+
+        Iterator<Expression> iterator = e.iterator();
+        if (iterator.hasNext())
+            result.append(print(iterator.next()));
+
+        while (iterator.hasNext()) {
+            Expression exp = iterator.next();
+            result.append(exp.isType("JOIN") ? "" : ",");
+            result.append(print(exp));
+        }
+
+        return result.toString();
     }
 
     private String printChildren(List<Expression> e) {

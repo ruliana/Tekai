@@ -42,13 +42,15 @@ public class ParserTest {
         assertParsing("([abc]:FUNCTION ([+]:ARITHMETIC ([(]:PARENTHESIS ([+]:ARITHMETIC [2]:NUMBER [1]:NUMBER)) [3]:NUMBER))", "abc((2 + 1) + 3)");
         assertParsing("([+]:ARITHMETIC ([(]:PARENTHESIS ([+]:ARITHMETIC ([+]:ARITHMETIC [1]:NUMBER ([abc]:FUNCTION ([+]:ARITHMETIC [2]:NUMBER [3]:NUMBER) [4]:NUMBER)) [5]:NUMBER)) [6]:NUMBER)", "(1 + abc(2 + 3, 4) + 5) + 6");
         assertParsing("([abc]:FUNCTION ([def]:FUNCTION [1]:NUMBER) ([ghi]:FUNCTION [2]:NUMBER))", "abc(def(1), ghi(2))");
+        assertParsing("([position]:FUNCTION ['abc']:STRING [campo]:IDENTIFIER)", "position('abc' in campo)");
+        assertParsing("([CAST]:FUNCTION ([as]:ALIAS [campo2]:IDENTIFIER [VARCHAR]:IDENTIFIER))", "CAST(campo2 as VARCHAR)");
     }
 
     @Test
     public void selectFrom() {
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [campo1]:IDENTIFIER [campo2]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER [tabela2]:IDENTIFIER))", "SELECT campo1, campo2 FROM tabela, tabela2");
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER))", "SELECT * FROM tabela");
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER ([INNER JOIN]:JOIN [outra_tabela]:IDENTIFIER [xxx]:IDENTIFIER)))", "SELECT * FROM tabela INNER JOIN outra_tabela ON xxx");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER ([INNER JOIN]:JOIN [outra_tabela]:IDENTIFIER ([ON]:ON [xxx]:IDENTIFIER))))", "SELECT * FROM tabela INNER JOIN outra_tabela ON xxx");
 
     }
 
@@ -104,19 +106,19 @@ public class ParserTest {
 "    ([AS]:ALIAS [ACT12000]:IDENTIFIER [C120]:IDENTIFIER)\n" +
 "    ([INNER JOIN]:JOIN\n" +
 "      ([AS]:ALIAS [AXT04000]:IDENTIFIER [X040]:IDENTIFIER)\n"  +
-"      ([=]:OPERATOR [X040.idnome]:IDENTIFIER [C120.idnome]:IDENTIFIER))\n" +
+"      ([ON]:ON ([=]:OPERATOR [X040.idnome]:IDENTIFIER [C120.idnome]:IDENTIFIER)))\n" +
 "    ([INNER JOIN]:JOIN\n" +
 "      ([AS]:ALIAS [AXT02000]:IDENTIFIER [X020A]:IDENTIFIER)\n" +
-"      ([=]:OPERATOR [X020A.idparametro]:IDENTIFIER [C120.sitsis]:IDENTIFIER))\n" +
+"      ([ON]:ON ([=]:OPERATOR [X020A.idparametro]:IDENTIFIER [C120.sitsis]:IDENTIFIER)))\n" +
 "    ([INNER JOIN]:JOIN\n" +
 "      ([AS]:ALIAS [AXT02000]:IDENTIFIER [X020B]:IDENTIFIER)\n" +
-"      ([=]:OPERATOR [X020B.idparametro]:IDENTIFIER [C120.sitcom]:IDENTIFIER))\n" +
+"      ([ON]:ON ([=]:OPERATOR [X020B.idparametro]:IDENTIFIER [C120.sitcom]:IDENTIFIER)))\n" +
 "    ([INNER JOIN]:JOIN\n" +
 "      ([AS]:ALIAS [AXT02000]:IDENTIFIER [X020C]:IDENTIFIER)\n" +
-"      ([=]:OPERATOR [X020C.idparametro]:IDENTIFIER [C120.sitlas]:IDENTIFIER))\n" +
+"      ([ON]:ON ([=]:OPERATOR [X020C.idparametro]:IDENTIFIER [C120.sitlas]:IDENTIFIER)))\n" +
 "    ([INNER JOIN]:JOIN\n" +
 "      ([AS]:ALIAS [AXT03000]:IDENTIFIER [X030]:IDENTIFIER)\n" +
-"      ([=]:OPERATOR [X030.idcidade]:IDENTIFIER [X040.idcidade]:IDENTIFIER))))";
+"      ([ON]:ON ([=]:OPERATOR [X030.idcidade]:IDENTIFIER [X040.idcidade]:IDENTIFIER)))))";
 
         Pattern spaces = Pattern.compile("\n\\s+", Pattern.MULTILINE);
         assertParsing(spaces.matcher(expected).replaceAll(" "), " SELECT C120.idcomercial, "
@@ -279,7 +281,9 @@ public class ParserTest {
                     Expression join = new Expression("JOIN", lastMatch());
                     join.addChildren(nextExpression());
                     consumeIf("ON");
-                    join.addChildren(nextExpression());
+                    Expression on = new Expression("ON", lastMatch());
+                    on.addChildren(nextExpression());
+                    join.addChildren(on);
                     from.addChildren(join);
                 }
                 result.addChildren(fields, from);
@@ -405,7 +409,7 @@ public class ParserTest {
         parser.register(new BeforeMiddleAfterParselet(GROUPING, "\\(", null, "\\)", "PARENTHESIS"));
 
         // FUNCTION
-        parser.register(new BeforeMiddleAfterParselet(FUNCTION, "(\\w+)\\s*\\(", ",", "\\)", "FUNCTION"));
+        parser.register(new BeforeMiddleAfterParselet(FUNCTION, "(\\w+)\\s*\\(", "\\,|"+word("IN"), "\\)", "FUNCTION"));
 
         //ORDER BY
         //parser.register(new BeforeMiddleAfterParselet(ORDER, "\\b((?i)ORDER\\s+BY)\\b", ",", "(\\b((?i)ASC)\\b|\\b((?i)DESC)\\b)?", "ORDER BY"));

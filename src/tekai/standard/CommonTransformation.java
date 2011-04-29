@@ -39,6 +39,11 @@ public class CommonTransformation extends Transformation {
         return this;
     }
 
+    public CommonTransformation toType(String type){
+        to.setType(type);
+        return this;
+    }
+
     public CommonTransformation toParamOrder(int... paramOrder) {
         to.setParamOrder(paramOrder);
         return this;
@@ -69,6 +74,7 @@ public class CommonTransformation extends Transformation {
     public static class To {
 
         private String value;
+        private String type;
         private int[] paramOrder;
         private boolean toNothing;
 
@@ -84,15 +90,23 @@ public class CommonTransformation extends Transformation {
             this.toNothing = true;
         }
 
+        public void setType(String type){
+            this.type = type;
+        }
+
         private Expression makes(String oldValue, String oldType, List<Expression> oldChildren) {
 
             if (toNothing) return null;
 
             Expression result = null;
-            if (value == null)
+            if (value == null && type == null)
                 result = new Expression(oldType, oldValue);
-            else
+            else if(value != null && type != null)
+                result = new Expression(type, value);
+            else if(type == null)
                 result = new Expression(oldType, value);
+            else if(value == null)
+                result = new Expression(type, oldValue);
 
             if (paramOrder == null)
                 result.addChildren(oldChildren);
