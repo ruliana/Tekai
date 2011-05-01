@@ -11,9 +11,9 @@ public abstract class Transformation {
         LinkedList<Expression> transformedChildren = applyOn(expression.getChildren());
 
         if (when(expression))
-            return then(expression.getValue(), expression.getType(), transformedChildren);
+            return then(expression.printValue(), expression.getType(), transformedChildren);
         else
-            return e(expression.getValue(), expression.getType(), transformedChildren);
+            return e(expression.printValue(), expression.getType(), transformedChildren);
     }
 
     private LinkedList<Expression> applyOn(List<Expression> children) {

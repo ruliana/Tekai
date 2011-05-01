@@ -1,6 +1,10 @@
 package tekai.standard;
 
+import static tekai.Expression.e;
+
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import tekai.Expression;
 import tekai.Transformation;
@@ -102,19 +106,39 @@ public class CommonTransformation extends Transformation {
             if (value == null && type == null)
                 result = new Expression(oldType, oldValue);
             else if(value != null && type != null)
-                result = new Expression(type, value);
+                result = new Expression(type, withOldSpacing(oldValue, value));
             else if(type == null)
-                result = new Expression(oldType, value);
+                result = new Expression(oldType, withOldSpacing(oldValue, value));
             else if(value == null)
                 result = new Expression(type, oldValue);
 
-            if (paramOrder == null)
+            if (paramOrder == null) {
                 result.addChildren(oldChildren);
-            else
-                for(int i : paramOrder)
-                    result.addChildren(oldChildren.get(i - 1));
+            } else {
+                int x = 0;
+                for (int i : paramOrder) {
+                    result.addChildren(withOldSpacing(oldChildren.get(x), oldChildren.get(i - 1)));
+                    x++;
+                }
+            }
 
             return result;
+        }
+
+        private Expression withOldSpacing(Expression oldExpression, Expression newExpression) {
+            return e(withOldSpacing(oldExpression.printValue(), newExpression.getValue())
+                     , newExpression.getType()
+                     , newExpression.getChildren());
+        }
+
+        private String withOldSpacing(String oldValue, String newValue) {
+            Pattern pattern = Pattern.compile("^(\\s*)");
+            Matcher matcher = pattern.matcher(oldValue);
+            if (matcher.find()) {
+                return matcher.group(1) + newValue;
+            } else {
+                return newValue;
+            }
         }
     }
 
