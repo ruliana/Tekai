@@ -68,6 +68,7 @@ public class ParserTest {
 
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([OR]:BOOLEAN ([AND]:BOOLEAN ([(]:PARENTHESIS ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)) ([=]:OPERATOR [id]:IDENTIFIER [35.89]:NUMBER)) ([(]:PARENTHESIS ([=]:OPERATOR [campo]:IDENTIFIER [5]:NUMBER)))))",
             "SELECT * FROM tabela WHERE (campo = 2) AND id = 35.89 OR (campo = 5)");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([>]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)))", "SELECT  * FROM tabela WHERE campo >2");
     }
 
     @Test
@@ -192,7 +193,9 @@ public class ParserTest {
 
      @Test
      public void not(){
-         assertParsing("", "Select * from tabela where campo  LIKE 'teste'");
+         assertParsing("([NOT]:NOT [1]:NUMBER)", "NOT 1");
+         assertParsing("([NOT]:NOT ([abc]:FUNCTION [1]:NUMBER))", "NOT abc(1)");
+         //assertParsing("([NOT]:NOT ([LIKE]:LIKE [campo]:IDENTIFIER ['teste']:STRING))", "campo NOT LIKE 'teste'");
      }
 
     @Test
@@ -234,6 +237,7 @@ public class ParserTest {
         final int NOT = x++;
         final int LIKE = x++;
         final int POS = x++;
+        final int LOGICOPER = x++;
         final int EQUALS = x++;
         final int MULTIPLY = x++;
         final int SUM = x++;
@@ -282,10 +286,10 @@ public class ParserTest {
                     from.addChildren(nextExpression());
                 } while(canConsume(","));
 
-                while (canConsume(word("INNER(?: OUTER|RIGHT|LEFT)? JOIN"))) {
+                while (canConsume(word("(?:INNER|RIGHT|LEFT)?\\s+JOIN|JOIN"))) {
                     Expression join = new Expression("JOIN", lastMatch());
                     join.addChildren(nextExpression());
-                    consumeIf("ON");
+                    consumeIf(word("ON"));
                     Expression on = new Expression("ON", lastMatch());
                     on.addChildren(nextExpression());
                     join.addChildren(on);
@@ -400,12 +404,12 @@ public class ParserTest {
         parser.register(new InfixParselet(ATOM, word("AS"), "ALIAS"));
 
         //EQUALS (OPERATOR)
+        parser.register(new InfixParselet(LOGICOPER, "\\>\\=", "OPERATOR"));
+        parser.register(new InfixParselet(LOGICOPER, "\\<\\=", "OPERATOR"));
+        parser.register(new InfixParselet(LOGICOPER, "\\<\\>", "OPERATOR"));
         parser.register(new InfixParselet(EQUALS, "\\=", "OPERATOR"));
         parser.register(new InfixParselet(EQUALS, "\\>", "OPERATOR"));
-        parser.register(new InfixParselet(EQUALS, word(">="), "OPERATOR"));
         parser.register(new InfixParselet(EQUALS, "\\<", "OPERATOR"));
-        parser.register(new InfixParselet(EQUALS, word("<="), "OPERATOR"));
-        parser.register(new InfixParselet(EQUALS, word("<>"), "OPERATOR"));
 
         //CONCAT
         parser.register(new BeforeMiddleAfterParselet(ATOM, null, "\\|\\|", null, "CONCAT"));
