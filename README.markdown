@@ -3,7 +3,7 @@ A Pratt Parser implementation with no Lexer
 
 Tekai is based on [this text](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy) by [Bob Nystrom](http://www.stuffwithstuff.com/bob-nystrom.html) (a.k.a. ["munificent"](https://github.com/munificent)), author of [Magpie](http://github.com/munificent/magpie). He describes how Pratt Parsers works and he shows, step by step, how to program your own parser (the article is awesome!). Since we need a simple parser for our own purposes ([Fuser project](https://github.com/ruliana/Fuser)), I gave it a try and the results are pretty good.
 
-As we need something a bit more simple to program, instead of using a Lexer to generate tokens, I used regular expression right in the "parselets" (little components that parser a single "rule"), what makes it a parser with no lexer phase. I'm not sure that fully classifies it as a ["Scannerless Parser"](http://en.wikipedia.org/wiki/Scannerless_parsing), but it serves well to its purpose.
+As we need something a bit simpler to program, instead of using a Lexer to generate tokens, I used regular expressions right in the "parselets" (little components that parse a single "rule"), what makes Tekai a parser with no lexer phase. I'm not sure that fully classifies it as a ["Scannerless Parser"](http://en.wikipedia.org/wiki/Scannerless_parsing), but it serves well to its purpose.
 
 Here is an example:
 
@@ -48,3 +48,20 @@ This tree is represented by the following string when using the "toString" metho
 ```java
 "([+]:PLUS [1]:NUMBER ([*]:MULT ([++]:PLUSONE [2]:NUMBER) [3]:NUMBER))"
 ```
+
+Standard Parselets
+------------------
+TODO
+
+"Brute Force" Parselets
+=======================
+TODO
+
+Transformations
+---------------
+TODO
+
+Printing
+--------
+TODO
+
