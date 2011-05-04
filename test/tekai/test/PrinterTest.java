@@ -75,7 +75,7 @@ public class PrinterTest {
     public void testLimit(){
         sql = "SELECT  * FROM tabela WHERE campo = 2  LIMIT 10";
         assertEquals(sql, print(p.parse(sql)));
-        sql = "SELECT  * FROM tabela WHERE campo = 2 ORDER BY campo2 LIMIT 10 OFFSET 0";
+        sql = "SELECT  * FROM tabela WHERE campo = :id ORDER BY campo2 LIMIT 10 OFFSET 0";
         assertEquals(sql, print(p.parse(sql)));
     }
 

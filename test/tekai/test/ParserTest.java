@@ -63,8 +63,8 @@ public class ParserTest {
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([AND]:BOOLEAN ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER) ([=]:OPERATOR [id]:IDENTIFIER [3]:NUMBER))))",
             "SELECT * FROM tabela WHERE campo = 2 AND id = 3");
 
-        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([OR]:BOOLEAN ([AND]:BOOLEAN ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER) ([=]:OPERATOR [id]:IDENTIFIER [3]:NUMBER)) ([=]:OPERATOR [campo]:IDENTIFIER [5.5]:NUMBER))))",
-            "SELECT * FROM tabela WHERE campo = 2 AND id = 3 OR campo = 5.5");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([OR]:BOOLEAN ([AND]:BOOLEAN ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER) ([=]:OPERATOR [id]:IDENTIFIER [:param]:PARAMETER)) ([=]:OPERATOR [campo]:IDENTIFIER [5.5]:NUMBER))))",
+            "SELECT * FROM tabela WHERE campo = 2 AND id = :param OR campo = 5.5");
 
         assertParsing("([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([OR]:BOOLEAN ([AND]:BOOLEAN ([(]:PARENTHESIS ([=]:OPERATOR [campo]:IDENTIFIER [2]:NUMBER)) ([=]:OPERATOR [id]:IDENTIFIER [35.89]:NUMBER)) ([(]:PARENTHESIS ([=]:OPERATOR [campo]:IDENTIFIER [5]:NUMBER)))))",
             "SELECT * FROM tabela WHERE (campo = 2) AND id = 35.89 OR (campo = 5)");
@@ -188,6 +188,11 @@ public class ParserTest {
             + "           FROM AXT05000 AS ax050    "
             + "            WHERE ax050.Descricao like 'SERVIÇOS DE TI%'  "
             + " GROUP BY campo1, campo2");
+     }
+
+     @Test
+     public void not(){
+         assertParsing("", "Select * from tabela where campo  LIKE 'teste'");
      }
 
     @Test
@@ -395,7 +400,12 @@ public class ParserTest {
         parser.register(new InfixParselet(ATOM, word("AS"), "ALIAS"));
 
         //EQUALS (OPERATOR)
-        parser.register(new InfixParselet(EQUALS, "=", "OPERATOR"));
+        parser.register(new InfixParselet(EQUALS, "\\=", "OPERATOR"));
+        parser.register(new InfixParselet(EQUALS, "\\>", "OPERATOR"));
+        parser.register(new InfixParselet(EQUALS, word(">="), "OPERATOR"));
+        parser.register(new InfixParselet(EQUALS, "\\<", "OPERATOR"));
+        parser.register(new InfixParselet(EQUALS, word("<="), "OPERATOR"));
+        parser.register(new InfixParselet(EQUALS, word("<>"), "OPERATOR"));
 
         //CONCAT
         parser.register(new BeforeMiddleAfterParselet(ATOM, null, "\\|\\|", null, "CONCAT"));
@@ -424,5 +434,8 @@ public class ParserTest {
 
         //IDENTIFIER
         parser.register(new AtomParselet(ATOM, "(\\w+\\.\\w+|\\w+|\\*)", "IDENTIFIER"));
+
+        //PARAMETER
+        parser.register(new AtomParselet(ATOM, "(\\:\\w+)", "PARAMETER"));
     }
 }
