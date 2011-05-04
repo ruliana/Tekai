@@ -31,15 +31,15 @@ parser.register(new AtomParselet(ATOM_PRECENDENCE, "\\d+", "NUMBER"));
 
 Expresssion result = parser.parse();
 ```
+
 The code above results in the following AST:
-```
-+               (PLUS)
-|__ 1           (NUMBER)
-|__ *           (MULT)
-    |__ ++      (PLUSONE)
-    |   |__ 2   (NUMBER)
-    |__ 3       (NUMBER)
-```
+
+    +               (PLUS)
+    |__ 1           (NUMBER)
+    |__ *           (MULT)
+        |__ ++      (PLUSONE)
+        |   |__ 2   (NUMBER)
+        |__ 3       (NUMBER)
 
 This tree is represented by the following string when using the "toString" method of "Expression":
 
