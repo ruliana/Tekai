@@ -10,9 +10,27 @@ import tekai.standard.AtomParselet;
 import tekai.standard.BeforeMiddleAfterParselet;
 import tekai.standard.GroupingParselet;
 import tekai.standard.InfixParselet;
+import tekai.standard.PostfixParselet;
 import tekai.standard.PrefixParselet;
 
 public class ParserTest {
+
+    @Test
+    public void arithmeticParser() {
+        int x = 1;
+        int ATOM_PRECENDENCE = x++;
+        int SUM_PRECENDENCE = x++;
+        int MULT_PRECENDENCE = x++;
+        int POSTFIX_PRECENDENCE = x++;
+
+        Parser parser = new Parser("1 + 2++ * 3");
+        parser.register(new PostfixParselet(POSTFIX_PRECENDENCE, "\\+{2}", "PLUSONE"));
+        parser.register(new InfixParselet(MULT_PRECENDENCE, "\\*", "MULT"));
+        parser.register(new InfixParselet(SUM_PRECENDENCE, "\\+", "PLUS"));
+        parser.register(new AtomParselet(ATOM_PRECENDENCE, "\\d+", "NUMBER"));
+
+        assertEquals("([+]:PLUS [1]:NUMBER ([*]:MULT ([++]:PLUSONE [2]:NUMBER) [3]:NUMBER))", parser.parse().toString());
+    }
 
     @Test
     public void justAnAtom() {
