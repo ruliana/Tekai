@@ -1,5 +1,6 @@
 package tekai.standard;
 
+import static tekai.javaexpansions.Strings.coalesce;
 import tekai.Expression;
 import tekai.Parselet;
 
@@ -8,13 +9,19 @@ public class BeforeMiddleAfterParselet extends Parselet {
     private final String startingRegularExpression;
     private final String interpolationRegularExpression;
     private final String endingRegularExpression;
+    private final String value;
     private final String type;
 
     public BeforeMiddleAfterParselet(int precedence, String startingRegularExpression, String interpolationRegularExpression, String endingRegularExpression, String type) {
+        this(precedence, startingRegularExpression, interpolationRegularExpression, endingRegularExpression, null, type);
+    }
+
+    public BeforeMiddleAfterParselet(int precedence, String startingRegularExpression, String interpolationRegularExpression, String endingRegularExpression, String value, String type) {
         this.setPrecedence(precedence);
         this.startingRegularExpression = startingRegularExpression;
         this.interpolationRegularExpression = interpolationRegularExpression;
         this.endingRegularExpression = endingRegularExpression;
+        this.value = value;
         this.type = type;
     }
 
@@ -37,7 +44,7 @@ public class BeforeMiddleAfterParselet extends Parselet {
 
     @Override
     protected Expression parse() {
-        Expression result = new Expression(type, lastMatch());
+        Expression result = new Expression(type, coalesce(value, lastMatch()));
 
         if (endingRegularExpression != null && canConsume(endingRegularExpression)) return result;
 

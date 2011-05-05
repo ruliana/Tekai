@@ -60,12 +60,6 @@ class Source {
         cursor = newCursor;
     }
 
-    public String sample() {
-        int start = cursor;
-        int end = cursor + 20 > source.length() ? source.length() : cursor + 20;
-        return source.subSequence(start, end).toString();
-    }
-
     /**
      * Returns the last expression matched by {@link #canConsume(String)}, {@link #consumeIf(String)} and {@link #matches(String)}.
      * <p>
@@ -74,5 +68,15 @@ class Source {
      */
     public String lastMatch() {
         return lastMatch == null ? "" : lastSpacing + lastMatch;
+    }
+
+    public boolean isEmpty() {
+        return source.length() == 0;
+    }
+
+    public String sample() {
+        int start = cursor;
+        int end = cursor + 20 > source.length() ? source.length() : cursor + 20;
+        return source.subSequence(start, end).toString();
     }
 }

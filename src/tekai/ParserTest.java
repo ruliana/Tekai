@@ -1,6 +1,7 @@
 package tekai;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static tekai.Helpers.word;
 
@@ -16,6 +17,13 @@ import tekai.standard.PrefixParselet;
 public class ParserTest {
 
     @Test
+    public void noSourceNoExpression() {
+        Parser parser = new Parser();
+        assertNull(parser.parse());
+        assertNull(parser.parse(""));
+    }
+
+    @Test
     public void arithmeticParser() {
         int x = 1;
         int ATOM_PRECENDENCE = x++;
@@ -23,13 +31,13 @@ public class ParserTest {
         int MULT_PRECENDENCE = x++;
         int POSTFIX_PRECENDENCE = x++;
 
-        Parser parser = new Parser("1 + 2++ * 3");
+        Parser parser = new Parser();
         parser.register(new PostfixParselet(POSTFIX_PRECENDENCE, "\\+{2}", "PLUSONE"));
         parser.register(new InfixParselet(MULT_PRECENDENCE, "\\*", "MULT"));
         parser.register(new InfixParselet(SUM_PRECENDENCE, "\\+", "PLUS"));
         parser.register(new AtomParselet(ATOM_PRECENDENCE, "\\d+", "NUMBER"));
 
-        assertEquals("([+]:PLUS [1]:NUMBER ([*]:MULT ([++]:PLUSONE [2]:NUMBER) [3]:NUMBER))", parser.parse().toString());
+        assertEquals("([+]:PLUS [1]:NUMBER ([*]:MULT ([++]:PLUSONE [2]:NUMBER) [3]:NUMBER))", parser.parse("1 + 2++ * 3").toString());
     }
 
     @Test
