@@ -172,11 +172,12 @@ public class ParserTest {
 
      @Test
     public void subSelect(){
-       // assertParsing("([SQL]:SQL ([SELECT]:SELECT [DISTINCT]:DISTINCT [ax050.idinterno]:IDENTIFIER [ax050.descricao]:IDENTIFIER ([||]:CONCAT ([=]:OPERATOR ['sistema']:STRING ([RTRIM]:FUNCTION [ax050.idinterno]:IDENTIFIER)) [' - ']:STRING ([RTRIM]:FUNCTION [ax050.descricao]:IDENTIFIER))) ([FROM]:FROM ([AS]:ALIAS [AXT05000]:IDENTIFIER [ax050]:IDENTIFIER)) ([WHERE]:WHERE ([like]:LIKE [ax050.Descricao]:IDENTIFIER ['SERVIÇOS DE TI%']:STRING)))",
-       //         "SELECT DISTINCT ax050.idinterno, ax050.descricao,    "
-       //     + "                        'sistema' = RTRIM(ax050.idinterno) || ' - ' || RTRIM(ax050.descricao)    "
-       //     + "           FROM AXT05000 AS ax050    "
-       //     + "            WHERE ax050.Descricao like 'SERVIÇOS DE TI%'  ");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [campo]:IDENTIFIER) ([FROM]:FROM ([(]:PARENTHESIS ([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER)))))",
+                "SELECT campo FROM (SELECT * FROM tabela)");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT [campo]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER) ([WHERE]:WHERE ([EXISTS]:FUNCTION ([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER)))))",
+                "SELECT campo FROM tabela WHERE EXISTS(SELECT * FROM tabela)");
+        assertParsing("([SQL]:SQL ([SELECT]:SELECT ([CASE]:CASE [campo]:IDENTIFIER ([WHEN]:WHEN ([EXISTS]:FUNCTION ([SQL]:SQL ([SELECT]:SELECT [*]:IDENTIFIER) ([FROM]:FROM [tabela]:IDENTIFIER))) ([THEN]:THEN ['ok']:STRING)) [END]:END)) ([FROM]:FROM [tabela]:IDENTIFIER))",
+                "SELECT CASE campo WHEN EXISTS(SELECT * FROM tabela) THEN 'ok' END FROM tabela");
 
 
     }
@@ -192,10 +193,12 @@ public class ParserTest {
      }
 
      @Test
-     public void not(){
+     public void notIs(){
          assertParsing("([NOT]:NOT [1]:NUMBER)", "NOT 1");
          assertParsing("([NOT]:NOT ([abc]:FUNCTION [1]:NUMBER))", "NOT abc(1)");
-         //assertParsing("([NOT]:NOT ([LIKE]:LIKE [campo]:IDENTIFIER ['teste']:STRING))", "campo NOT LIKE 'teste'");
+         assertParsing("([NOT  LIKE]:LIKE [campo]:IDENTIFIER ['teste']:STRING)", "campo NOT  LIKE 'teste'");
+         assertParsing("([is]:IS [campo]:IDENTIFIER [null]:IDENTIFIER)", " campo is null");
+         assertParsing("([IS]:IS [campo]:IDENTIFIER ([NOT]:NOT [NULL]:IDENTIFIER))", "campo IS NOT NULL");
      }
 
     @Test
@@ -235,8 +238,10 @@ public class ParserTest {
         final int OR = x++;
         final int AND = x++;
         final int NOT = x++;
+        final int IS = x++;
         final int LIKE = x++;
         final int POS = x++;
+        final int IN = x++;
         final int LOGICOPER = x++;
         final int EQUALS = x++;
         final int MULTIPLY = x++;
@@ -394,7 +399,7 @@ public class ParserTest {
         parser.register(new PrefixParselet(NOT, word("NOT"), "NOT"));
 
         //LIKE
-        parser.register(new InfixParselet(LIKE, word("LIKE"), "LIKE"));
+        parser.register(new InfixParselet(LIKE, word("NOT\\s+LIKE|LIKE"), "LIKE"));
 
         // ARITHMETIC
         parser.register(new InfixParselet(MULTIPLY, "(\\*|/|%)", "ARITHMETIC"));
@@ -411,6 +416,9 @@ public class ParserTest {
         parser.register(new InfixParselet(EQUALS, "\\>", "OPERATOR"));
         parser.register(new InfixParselet(EQUALS, "\\<", "OPERATOR"));
 
+        //IS
+        parser.register(new InfixParselet(IS, word("IS"), "IS"));
+        
         //CONCAT
         parser.register(new BeforeMiddleAfterParselet(ATOM, null, "\\|\\|", null, "CONCAT"));
 

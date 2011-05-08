@@ -131,6 +131,12 @@ public class PrinterTest {
         assertEquals(sql, print(p.parse(sql)));
     }
 
+    @Test
+    public void subselect(){
+        sql = "SELECT * from tabela where not exists(SELECT * from tabela)";
+        assertEquals(sql, print(p.parse(sql)));
+    }
+
     private String print(Expression e) {
         if (e.isType("SQL")) {
             return printChildren(e.getChildren(), "");
@@ -169,7 +175,8 @@ public class PrinterTest {
                         || e.isType("BOOLEAN")
                         || e.isType("LIKE")
                         || e.isType("ALIAS")
-                        || e.isType("OPERATOR")) {
+                        || e.isType("OPERATOR")
+                        || e.isType("IS")) {
             return print(e.getChild(0)) + e.printValue() + print(e.getChild(1));
         } else if (e.isType("ORDERING")) {
             return print(e.getChild(0)) + e.printValue();
