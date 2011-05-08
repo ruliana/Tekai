@@ -18,7 +18,7 @@ class Source {
     public boolean matches(String regularExpression) {
         if (cursor >= source.length()) return false;
 
-        Pattern pattern = Pattern.compile("^(\\s*)(" + regularExpression + ")");
+        Pattern pattern = Pattern.compile("^(\\s*?)(" + regularExpression + ")");
         Matcher matcher = pattern.matcher(source);
         matcher.useAnchoringBounds(true);
         matcher.region(cursor, source.length());
@@ -39,11 +39,17 @@ class Source {
         return matcher.group(2);
     }
 
-    public boolean canConsume(String regularExpression) {
-        if (!matches(regularExpression)) return false;
+    public boolean couldConsume(String regularExpression) {
+        return matches(regularExpression);
+    }
 
-        consumeLastMatch();
-        return true;
+    public boolean canConsume(String regularExpression) {
+        if (matches(regularExpression)) {
+            consumeLastMatch();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void consumeIf(String regularExpression) {

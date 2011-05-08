@@ -104,6 +104,10 @@ public class Parser {
         return source.lastMatch();
     }
 
+    public boolean couldConsume(String regularExpression) {
+        return source.couldConsume(regularExpression);
+    }
+
     public boolean canConsume(String regularExpression) {
         return source.canConsume(regularExpression);
     }

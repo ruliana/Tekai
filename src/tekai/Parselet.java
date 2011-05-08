@@ -90,6 +90,11 @@ public abstract class Parselet {
         return !canConsume(regularExpression);
     }
 
+    protected boolean couldConsume(String regularExpression) {
+        assert parser != null;
+        return parser.couldConsume(regularExpression);
+    }
+
     protected boolean canConsume(String regularExpression) {
         assert parser != null;
         return parser.canConsume(regularExpression);
