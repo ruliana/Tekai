@@ -90,10 +90,6 @@ public class Parser {
         return null;
     }
 
-    private void consumeLastMatch() {
-        source.consumeLastMatch();
-    }
-
     private boolean sourceMatches(Parselet parselet) {
         return source.matches(parselet.startingRegularExpression());
     }
@@ -114,5 +110,9 @@ public class Parser {
 
     public void consumeIf(String regularExpression) {
         source.consumeIf(regularExpression);
+    }
+
+    public void consumeLastMatch() {
+        source.consumeLastMatch();
     }
 }

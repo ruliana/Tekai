@@ -100,6 +100,11 @@ public abstract class Parselet {
         return parser.canConsume(regularExpression);
     }
 
+    protected void consumeLastMatch() {
+        assert parser != null;
+        parser.consumeLastMatch();
+    }
+
     // == Calling method for #parse() that prepares the "environment"
 
     public Expression executeParsing(Parser parser) {
@@ -112,6 +117,10 @@ public abstract class Parselet {
         this.left = left;
         this.right = null;
         return parse();
+    }
+
+    public boolean notPrefixParselet() {
+        return !isPrefixParselet();
     }
 
     // == To be implemented
