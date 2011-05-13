@@ -64,7 +64,7 @@ public class Parser {
             if ("".equals(source.sample()))
                 throw new UnparseableException("Expected something to parse, but found end of source");
             else
-                throw new UnparseableException("Could not find a expression to parse \"" + source.sample() + "\"");
+                return null;
 
 
         consumeLastMatch();

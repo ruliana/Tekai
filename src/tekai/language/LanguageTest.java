@@ -76,7 +76,7 @@ public class LanguageTest {
         lang.define("Number = /\\d+/");
         assertEquals("([average]:Function [1]:Number [2]:Number [3]:Number)", lang.parse("average(1, 2, 3)").toString());
         assertEquals("([average]:Function [1]:Number)", lang.parse("average(1)").toString());
-        //assertEquals("([average]:Function)", lang.parse("average()").toString());
+        assertEquals("[average]:Function", lang.parse("average()").toString());
     }
 
     //TODO "Typed" expressions

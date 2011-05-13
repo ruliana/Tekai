@@ -32,11 +32,12 @@ public class Expression {
 
     public void addChildren(Expression... expressions) {
         for(Expression expression : expressions)
-            children.add(expression);
+            if (expression != null)
+                children.add(expression);
     }
 
     public void addChildren(List<Expression> expressions) {
-        children = expressions;
+        addChildren(expressions.toArray(new Expression[]{}));
     }
 
     public static Expression e(String value, String type, Expression ... expressions) {

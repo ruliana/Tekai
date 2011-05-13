@@ -119,6 +119,10 @@ public class TekaiLang {
         });
     }
 
+    /**
+     * Helps {@link TekaiLang#buildDefinition(int, LangExpression)} to separate the first
+     * part of the expression that can be used as "anchor".
+     */
     static class MarkAndRest {
         public boolean startsWithMark = false;
         public LangExpression mark = null;
@@ -138,6 +142,9 @@ public class TekaiLang {
         }
     }
 
+    /**
+     * Wrapper for {@link Expression}. It adds useful meyhods for this context.
+     */
     static class LangExpression {
         private final Expression expression;
 
