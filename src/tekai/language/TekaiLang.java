@@ -20,7 +20,7 @@ public class TekaiLang {
     private final int REGULAR_EXPRESSION = precedence++;
     private final int DEFINITION = precedence++;
 
-    private LinkedList<Expression> parsed = new LinkedList<Expression>();
+    private LinkedList<LangExpression> parsed = new LinkedList<LangExpression>();
     private Parser language;
 
     public TekaiLang() {
@@ -35,11 +35,11 @@ public class TekaiLang {
     }
 
     public void define(String string) {
-        parsed.add(parser.parse(string));
+        parsed.add(new LangExpression(parser.parse(string)));
     }
 
     public Expression parse(String string) {
-        Iterator<Expression> iter = parsed.descendingIterator();
+        Iterator<LangExpression> iter = parsed.descendingIterator();
         int x = parsed.size() - 1;
         while (iter.hasNext())
             build(x++, iter.next());
@@ -47,30 +47,27 @@ public class TekaiLang {
         return language.parse(string);
     }
 
-    public Expression debugLastExpression() {
+    public LangExpression debugLastExpression() {
         return parsed.getLast();
     }
 
-    /**
-     * YEAHH! This IS functional! No objects here.
-     */
-    private void build(int precedence, Expression expression) {
-        if (expression.isType("Definition")) {
+    private void build(int precedence, LangExpression expression) {
+        if (expression.isDefinition()) {
             buildDefinition(precedence, expression);
         } else {
             throw new RuntimeException("No build rule for \"" + expression + "\"");
         }
     }
 
-    private void buildDefinition(final int precedence, final Expression expression) {
+    private void buildDefinition(final int precedence, final LangExpression expression) {
         assert precedence >= 0;
         assert expression != null;
 
         final String type = expression.getValue();
-        MarkAndRest markAndRest = separateFirstMark(expression.getChildren());
+        MarkAndRest markAndRest = new MarkAndRest(expression.getChildren());
         final boolean startsWithMark = markAndRest.startsWithMark;
-        final Expression firstMark = markAndRest.mark;
-        final List<Expression> expressions = markAndRest.rest;
+        final LangExpression firstMark = markAndRest.mark;
+        final List<LangExpression> expressions = markAndRest.rest;
 
         language.register(new Parselet() {
 
@@ -86,33 +83,33 @@ public class TekaiLang {
 
             @Override
             public String startingRegularExpression() {
-                return value(firstMark);
+                return firstMark.getValue();
             }
 
             @Override
             protected Expression parse() {
                 Expression result = new Expression(type, lastMatch());
 
-                Iterator<Expression> exps = expressions.iterator();
+                Iterator<LangExpression> exps = expressions.iterator();
 
-                if (notPrefixParselet() && exps.hasNext() && isTypeExpression(exps.next()))
+                if (notPrefixParselet() && exps.hasNext() && exps.next().isExpression())
                     result.addChildren(left());
 
-                if (notPrefixParselet() && isTypeMultiple(firstMark)) {
+                if (notPrefixParselet() && firstMark.isMultiple()) {
                     do {
                         result.addChildren(nextExpression(getPrecedence() + 1));
-                    } while (canConsume(value(firstMark)));
+                    } while (canConsume(firstMark.getValue()));
                 }
 
                 while (exps.hasNext()) {
-                    Expression exp = exps.next();
-                    if (isTypeExpression(exp))
+                    LangExpression exp = exps.next();
+                    if (exp.isExpression())
                         result.addChildren(nextExpression());
-                    else if (isTypeMultiple(exp))
-                        while (canConsume(value(exp)))
+                    else if (exp.isMultiple())
+                        while (canConsume(exp.getValue()))
                             result.addChildren(nextExpression());
-                    else if (isTypeMark(exp))
-                        consumeIf(value(exp));
+                    else if (exp.isMark())
+                        consumeIf(exp.getValue());
                     else
                         throw new RuntimeException("Not a recognizable expression:" + expression);
                 }
@@ -122,52 +119,68 @@ public class TekaiLang {
         });
     }
 
-    private String value(Expression expression) {
-        assert expression != null;
-        if (expression.isType("Symbol"))
-            return Pattern.quote(expression.getValue());
-        if (expression.isType("MultipleSymbols"))
-            return Pattern.quote(expression.getValue());
-        if (expression.isType("RegularExpression"))
-            return expression.getValue();
-        else
-            throw new RuntimeException("Not a Symbol or RegularExpression: " + expression);
-    }
+    static class MarkAndRest {
+        public boolean startsWithMark = false;
+        public LangExpression mark = null;
+        public List<LangExpression> rest = new LinkedList<LangExpression>();
 
-    private boolean isTypeMark(Expression expression) {
-        assert expression != null;
-        return expression.isType("Symbol")
-            || expression.isType("MultipleSymbols")
-            || expression.isType("RegularExpression");
-    }
-
-    private boolean isTypeMultiple(Expression expression) {
-        return expression.isType("MultipleSymbols");
-    }
-
-    private boolean isTypeExpression(Expression expression) {
-        assert expression != null;
-        return expression.isType("Expression");
-    }
-
-    private MarkAndRest separateFirstMark(List<Expression> all) {
-        MarkAndRest result = new MarkAndRest();
-        boolean found = false;
-        for(Expression exp : all) {
-            if (!found && isTypeMark(exp)) {
-                result.mark = exp;
-                if (result.rest.isEmpty()) result.startsWithMark = true;
-                found = true;
-            } else {
-                result.rest.add(exp);
+        public MarkAndRest(List<LangExpression> all) {
+            boolean found = false;
+            for(LangExpression exp : all) {
+                if (!found && exp.isMark()) {
+                    mark = exp;
+                    if (rest.isEmpty()) startsWithMark = true;
+                    found = true;
+                } else {
+                    rest.add(exp);
+                }
             }
         }
-        return result;
     }
 
-    private static class MarkAndRest {
-        public boolean startsWithMark = false;
-        public Expression mark = null;
-        public List<Expression> rest = new LinkedList<Expression>();
+    static class LangExpression {
+        private final Expression expression;
+
+        public LangExpression(Expression expression) {
+            assert expression != null;
+            this.expression = expression;
+        }
+
+        public String getValue() {
+            if (expression.isType("Symbol"))
+                return Pattern.quote(expression.getValue());
+            if (expression.isType("MultipleSymbols"))
+                return Pattern.quote(expression.getValue());
+            if (expression.isType("RegularExpression"))
+                return expression.getValue();
+            else
+                return expression.getValue();
+        }
+
+        public boolean isDefinition() {
+            return expression.isType("Definition");
+        }
+
+        public boolean isMark() {
+            return expression.isType("Symbol")
+                || expression.isType("MultipleSymbols")
+                || expression.isType("RegularExpression");
+        }
+
+        public boolean isExpression() {
+            return expression.isType("Expression");
+        }
+
+        public boolean isMultiple() {
+            return expression.isType("MultipleSymbols");
+        }
+
+        public List<LangExpression> getChildren() {
+            List<LangExpression> result = new LinkedList<LangExpression>();
+            for (Expression exp : expression.getChildren()) {
+                result.add(new LangExpression(exp));
+            }
+            return result;
+        }
     }
 }
