@@ -13,6 +13,9 @@ import tekai.standard.BeforeMiddleAfterParselet;
 
 public class TekaiLang {
 
+    private Parser contextParser;
+    private LinkedList<LangExpression> contextParsed = new LinkedList<LangExpression>();
+
     private Parser parser;
     private int precedence = 1;
     private final int ATOM = precedence++;
@@ -24,8 +27,12 @@ public class TekaiLang {
     private Parser language;
 
     public TekaiLang() {
+        contextParser = new Parser();
+        contextParser.register(new BeforeMiddleAfterParselet(0, "Context +(\\w+)\r?\n", "(\r?\n)+", null , "Context"));
+        contextParser.register(new AtomParselet(1, "[^\\r\\n]+", "Text"));
+
         parser = new Parser();
-        parser.register(new BeforeMiddleAfterParselet(DEFINITION, "([\\w\\-]+) *?=", " *", null , "Definition"));
+        parser.register(new BeforeMiddleAfterParselet(DEFINITION, "([\\w\\-]+) *?=", " +", null, "Definition"));
         parser.register(new AtomParselet(REGULAR_EXPRESSION, "\\/(.*?)\\/", "RegularExpression"));
         parser.register(new AtomParselet(EXPRESSION, "<([\\w\\-]+)>", "Expression"));
         parser.register(new AtomParselet(ATOM, "([^ ]+)\\.{3}", "MultipleSymbols"));
@@ -35,11 +42,25 @@ public class TekaiLang {
     }
 
     public void define(String string) {
+        contextParsed.add(new LangExpression(contextParser.parse(string)));
+    }
+
+    protected void defineExpression(String string) {
         parsed.add(new LangExpression(parser.parse(string)));
     }
 
     public Expression parse(String string) {
+        Iterator<LangExpression> iter = contextParsed.descendingIterator();
+
+        while (iter.hasNext())
+            buildContext(iter.next());
+
+        return parseExpression(string);
+    }
+
+    private Expression parseExpression(String string) {
         Iterator<LangExpression> iter = parsed.descendingIterator();
+
         int x = parsed.size() - 1;
         while (iter.hasNext())
             build(x++, iter.next());
@@ -51,12 +72,16 @@ public class TekaiLang {
         return parsed.getLast();
     }
 
+    private void buildContext(LangExpression expression) {
+        for (LangExpression exp : expression.getChildren())
+            defineExpression(exp.getValue());
+    }
+
     private void build(int precedence, LangExpression expression) {
-        if (expression.isDefinition()) {
+        if (expression.isDefinition())
             buildDefinition(precedence, expression);
-        } else {
+        else
             throw new RuntimeException("No build rule for \"" + expression + "\"");
-        }
     }
 
     private void buildDefinition(final int precedence, final LangExpression expression) {
@@ -164,6 +189,10 @@ public class TekaiLang {
                 return expression.getValue();
         }
 
+        public boolean isContext() {
+            return expression.isType("Context");
+        }
+
         public boolean isDefinition() {
             return expression.isType("Definition");
         }
@@ -188,6 +217,11 @@ public class TekaiLang {
                 result.add(new LangExpression(exp));
             }
             return result;
+        }
+
+        @Override
+        public String toString() {
+            return expression.toString();
         }
     }
 }
