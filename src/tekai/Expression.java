@@ -39,6 +39,14 @@ public class Expression {
         children = expressions;
     }
 
+    public void addFirstChild(Expression expression){
+        addChildAt(expression, 0);
+    }
+
+    public void addChildAt(Expression expression, int index){
+        children.add(index, expression);
+    }
+
     public static Expression e(String value, String type, Expression ... expressions) {
         return e(value, type, new LinkedList<Expression>(asList(expressions)));
     }
