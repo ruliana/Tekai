@@ -16,7 +16,7 @@ public abstract class Printer {
     protected String printChildren(List<Expression> e, String separator) {
         StringBuilder result = new StringBuilder();
 
-        String lastValue = null;
+        String lastValue;
         Iterator<Expression> iterator = e.iterator();
         if (iterator.hasNext()) {
             lastValue = print(iterator.next());

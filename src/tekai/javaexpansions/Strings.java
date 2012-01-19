@@ -1,5 +1,7 @@
 package tekai.javaexpansions;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,5 +28,22 @@ public class Strings {
         } else {
             return "";
         }
+    }
+
+    public static String join(String separator, Collection<?> elements) {
+        if (elements == null || elements.isEmpty()) return "";
+        
+        StringBuilder result = new StringBuilder();
+        Iterator<?> iterator = elements.iterator();
+        
+        if (iterator.hasNext())
+            result.append(String.valueOf(iterator.next()));
+        
+        while (iterator.hasNext()) {
+            result.append(separator);
+            result.append(String.valueOf(iterator.next()));
+        }
+        
+        return result.toString();
     }
 }

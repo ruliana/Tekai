@@ -1,12 +1,13 @@
 package tekai;
 
-import static java.util.Arrays.asList;
-
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.util.Arrays.asList;
+import static tekai.javaexpansions.Strings.join;
 
 public class Expression {
 
@@ -121,5 +122,34 @@ public class Expression {
         }
 
         return result.toString();
+    }
+
+    public String asPrintTree() {
+        return deepPrintTree(0, "");
+    }
+    
+    protected String deepPrintTree(int deep, String nodePrefix) {
+        List<String> lines = new LinkedList<String>();
+
+        lines.add(deepPrintPrefix(deep) + getValue() + " (" + getType() + ")");
+
+        Iterator<Expression> iterator = children.iterator();
+
+        while (iterator.hasNext()) {
+            Expression child = iterator.next();
+
+            String nextNodePrefix = iterator.hasNext()
+                    ? "|   "
+                    : "    ";
+
+            lines.add(nodePrefix + child.deepPrintTree(deep + 1, nodePrefix + nextNodePrefix));
+        }
+        
+        return join("\n", lines);
+    }
+
+    private String deepPrintPrefix(int deep) {
+        if (deep <= 0) return "";
+        return "|__ ";
     }
 }
