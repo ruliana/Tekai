@@ -25,40 +25,100 @@ public class ParserTest {
 
     @Test
     public void testAtomParser() throws Exception {
-        Parser parser = new Parser();
-        parser.addRule("NUMBER", "\\d+");
+        Parser number = new Parser();
+        number.rule("NUMBER").is("\\d+").end();
 
-        Expression expression = parser.parse("1");
+        Expression expression = number.parse("1");
         assertEquals("1 (NUMBER)", expression.asPrintTree());
     }
 
     @Test
      public void testPrefixParser() throws Exception {
-        Parser parser = new Parser();
-        parser.addRule("MINUS", "--", parser);
-        parser.addRule("NUMBER", "\\d+");
+        Parser anyExpression = new Parser();
+        anyExpression.rule("MINUS").is("--").then(anyExpression).end();
+        anyExpression.rule("NUMBER").is("\\d+").end();
 
-        Expression expression = parser.parse("--1");
+        Expression expression = anyExpression.parse("--1");
         assertEquals(
                 "-- (MINUS)\n" +
                 "|__ 1 (NUMBER)"
                 , expression.asPrintTree());
+
+        Expression expression2 = anyExpression.parse("----2");
+        assertEquals(
+                "-- (MINUS)\n" +
+                "|__ -- (MINUS)\n" +
+                "    |__ 2 (NUMBER)"
+                , expression2.asPrintTree());
+
+        Expression expression3 = anyExpression.parse("-- -- 3");
+        assertEquals(
+                "-- (MINUS)\n" +
+                "|__ -- (MINUS)\n" +
+                "    |__ 3 (NUMBER)"
+                , expression3.asPrintTree());
     }
     
     @Test
     public void testPrefixSelectiveParser() throws Exception {
-        Parser minusParser = new Parser();
-        Parser numberParser = new Parser();
+        Parser minus = new Parser();
+        Parser anyNumber = new Parser();
 
-        minusParser.addRule("MINUS", "--", numberParser);
-        numberParser.addRule("NUMBER", "\\d+");
+        minus.rule("MINUS").is("--").then(anyNumber).end();
+        anyNumber.rule("NUMBER").is("\\d+").end();
 
-        Expression expression = minusParser.parse("--1");
+        Expression expression = minus.parse("--1");
         assertEquals(
                 "-- (MINUS)\n" +
                 "|__ 1 (NUMBER)"
                 , expression.asPrintTree());
     }
+
+    @Test
+    public void testInfixParser() throws Exception {
+        Parser anyExpression = new Parser();
+        anyExpression.rule("PLUS").is(anyExpression).then("\\+").then(anyExpression).end();
+        anyExpression.rule("NUMBER").is("\\d+").end();
+
+        Expression expression = anyExpression.parse("1 + 2");
+        assertEquals(
+                "+ (PLUS)\n" +
+                "|__ 1 (NUMBER)\n" +
+                "|__ 2 (NUMBER)"
+                , expression.asPrintTree());
+    }
+
+    @Test
+    public void testInfixSelectiveParser() throws Exception {
+        Parser plus = new Parser();
+        Parser anyABC = new Parser();
+        Parser anyNumber = new Parser();
+
+        plus.rule("PLUS").is(anyABC).then("\\+").then(anyNumber).end();
+        anyABC.rule("ABC").is("[ABC]").end();
+        anyNumber.rule("NUMBER").is("\\d+").end();
+
+        Expression expression = plus.parse("A + 2");
+        assertEquals(
+                "+ (PLUS)\n" +
+                "|__ A (ABC)\n" +
+                "|__ 2 (NUMBER)"
+                , expression.asPrintTree());
+    }
+
+    @Test(expected = UnparseableException.class)
+    public void fixInfiniteRecursionInPrefixParser() throws Exception {
+        Parser anyExpression = new Parser();
+        anyExpression.rule("PLUS").is(anyExpression).then("\\+").then(anyExpression).end();
+        anyExpression.rule("NUMBER").is("\\d+").end();
+
+        Expression expression = anyExpression.parse("A + 2");
+    }
+
+    // TODO test multipart prefix parser
+    // TODO test multipart infix parser
+    // TODO test precedence
+    // TODO separate parsers tests above in individual tests files
 
     @Test
     public void arithmeticParser() {
@@ -127,11 +187,9 @@ public class ParserTest {
 
     @Test
     public void exceptions() {
-        // TODO Launch specific exception to specific problems
-        // TODO Add more and more contextual information to error messages
         try {
             parse("1 +");
-            fail("Expected not able to parse an incomplete expression \"1 +\"");
+            fail("Expected not able to parse an incomplete then \"1 +\"");
         } catch (Exception e) {
             // success
         }

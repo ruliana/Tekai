@@ -203,11 +203,9 @@ public class ParserTest {
 
     @Test
     public void exceptions() {
-        // TODO Launch specific exception to specific problems
-        // TODO Add more and more contextual information to error messages
         try {
             parse("1 +");
-            fail("Expected not able to parse an incomplete expression \"1 +\"");
+            fail("Expected not able to parse an incomplete then \"1 +\"");
         } catch (Exception e) {
             // success
         }

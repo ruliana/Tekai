@@ -2,6 +2,11 @@ package tekai.standard;
 
 import tekai.Expression;
 import tekai.Parselet;
+import tekai.Parser;
+
+import java.util.LinkedList;
+
+import static java.util.Arrays.asList;
 
 public class InfixParselet extends Parselet {
 
@@ -12,6 +17,12 @@ public class InfixParselet extends Parselet {
         this.setPrecedence(precedence);
         this.startingRegularExpression = startingRegularExpression;
         this.type = type;
+    }
+
+    public InfixParselet(int precedence, String startingRegularExpression, String type, Parser leftParser, Parser rightParser) {
+        this(precedence, startingRegularExpression, type);
+        setLeftParser(leftParser);
+        setParser(rightParser);
     }
 
     @Override

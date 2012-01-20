@@ -4,6 +4,7 @@ package tekai;
 public abstract class Parselet {
 
     private int precedence;
+    private Parser leftParser;
     private Parser parser;
     private String match = "";
     private Expression left;
@@ -26,7 +27,15 @@ public abstract class Parselet {
     protected boolean isLeftAssociativity() {
         return false;
     }
-    
+
+    public void setLeftParser(Parser leftParser) {
+        this.leftParser = leftParser;
+    }
+
+    public Parser getLeftParser() {
+        return leftParser;
+    }
+
     protected void setParser(Parser parser) {
         this.parser = parser;
     }
@@ -63,7 +72,7 @@ public abstract class Parselet {
     }
 
     protected Expression left() {
-        if (isPrefixParselet()) throw new RuntimeException("There is no \"left\" expression in a prefix parser");
+        if (isPrefixParselet()) throw new RuntimeException("There is no \"left\" then in a prefix parser");
         return left;
     }
 
@@ -129,4 +138,5 @@ public abstract class Parselet {
     public abstract String startingRegularExpression();
 
     protected abstract Expression parse();
+
 }

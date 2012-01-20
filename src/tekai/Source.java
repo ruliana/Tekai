@@ -67,7 +67,7 @@ class Source {
     }
 
     /**
-     * Returns the last expression matched by {@link #canConsume(String)}, {@link #consumeIf(String)} and {@link #matches(String)}.
+     * Returns the last then matched by {@link #canConsume(String)}, {@link #consumeIf(String)} and {@link #matches(String)}.
      * <p>
      * Never returns null.
      * </p>
