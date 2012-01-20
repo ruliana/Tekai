@@ -1,5 +1,8 @@
 package tekai;
 
+import tekai.standard.AtomParselet;
+import tekai.standard.PrefixParselet;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,7 +20,7 @@ public class Parser {
     }
 
     public Parser(CharSequence source) {
-        this.source = new Source(source);
+        this.setSource(new Source(source));
     }
 
     public void register(Parselet parselet) {
@@ -28,13 +31,21 @@ public class Parser {
         }
     }
 
+    public void addRule(String type, String tokenExpression) {
+        register(new AtomParselet(0, tokenExpression, type));
+    }
+
+    public void addRule(String type, String tokenExpression, Parser parser) {
+        register(new PrefixParselet(0, tokenExpression, type, parser));
+    }
+
     // == Parse Engine ==
 
     /**
      * @throws UnparseableException
      */
     public Expression parse(CharSequence source) {
-        this.source = new Source(source);
+        this.setSource(new Source(source));
         return parse();
     }
 
@@ -44,8 +55,8 @@ public class Parser {
     public Expression parse() {
         Expression result = parse(0);
 
-        if (source != null && !"".equals(source.sample().trim()))
-            throw new UnparseableException("There are things to parse, but no rule for it: \"" + source.sample() + "\"");
+        if (getSource() != null && !"".equals(getSource().sample().trim()))
+            throw new UnparseableException("There are things to parse, but no rule for it: \"" + getSource().sample() + "\"");
 
         return result;
     }
@@ -55,16 +66,16 @@ public class Parser {
      */
     protected Expression parse(int currentPrecedence) {
 
-        if (source == null) return null;
-        if (source.isEmpty()) return null;
+        if (getSource() == null) return null;
+        if (getSource().isEmpty()) return null;
 
         Parselet currentParselet = findParseletIn(prefixParselets);
 
         if (currentParselet == null)
-            if ("".equals(source.sample()))
+            if ("".equals(getSource().sample()))
                 throw new UnparseableException("Expected something to parse, but found end of source");
             else
-                throw new UnparseableException("Could not find a expression to parse \"" + source.sample() + "\"");
+                throw new UnparseableException("Could not find a expression to parse \"" + getSource().sample() + "\"");
 
 
         consumeLastMatch();
@@ -91,28 +102,36 @@ public class Parser {
     }
 
     private void consumeLastMatch() {
-        source.consumeLastMatch();
+        getSource().consumeLastMatch();
     }
 
     private boolean sourceMatches(Parselet parselet) {
-        return source.matches(parselet.startingRegularExpression());
+        return getSource().matches(parselet.startingRegularExpression());
     }
 
     // == Helpers to Parselets
 
     public String lastMatch() {
-        return source.lastMatch();
+        return getSource().lastMatch();
     }
 
     public boolean couldConsume(String regularExpression) {
-        return source.couldConsume(regularExpression);
+        return getSource().couldConsume(regularExpression);
     }
 
     public boolean canConsume(String regularExpression) {
-        return source.canConsume(regularExpression);
+        return getSource().canConsume(regularExpression);
     }
 
     public void consumeIf(String regularExpression) {
-        source.consumeIf(regularExpression);
+        getSource().consumeIf(regularExpression);
+    }
+
+    public Source getSource() {
+        return source;
+    }
+
+    public void setSource(Source source) {
+        this.source = source;
     }
 }

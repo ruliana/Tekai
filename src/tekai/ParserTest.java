@@ -24,18 +24,55 @@ public class ParserTest {
     }
 
     @Test
+    public void testAtomParser() throws Exception {
+        Parser parser = new Parser();
+        parser.addRule("NUMBER", "\\d+");
+
+        Expression expression = parser.parse("1");
+        assertEquals("1 (NUMBER)", expression.asPrintTree());
+    }
+
+    @Test
+     public void testPrefixParser() throws Exception {
+        Parser parser = new Parser();
+        parser.addRule("MINUS", "--", parser);
+        parser.addRule("NUMBER", "\\d+");
+
+        Expression expression = parser.parse("--1");
+        assertEquals(
+                "-- (MINUS)\n" +
+                "|__ 1 (NUMBER)"
+                , expression.asPrintTree());
+    }
+    
+    @Test
+    public void testPrefixSelectiveParser() throws Exception {
+        Parser minusParser = new Parser();
+        Parser numberParser = new Parser();
+
+        minusParser.addRule("MINUS", "--", numberParser);
+        numberParser.addRule("NUMBER", "\\d+");
+
+        Expression expression = minusParser.parse("--1");
+        assertEquals(
+                "-- (MINUS)\n" +
+                "|__ 1 (NUMBER)"
+                , expression.asPrintTree());
+    }
+
+    @Test
     public void arithmeticParser() {
         int x = 1;
-        int ATOM_PRECENDENCE = x++;
-        int SUM_PRECENDENCE = x++;
-        int MULT_PRECENDENCE = x++;
-        int POSTFIX_PRECENDENCE = x++;
+        int ATOM_PRECEDENCE = x++;
+        int SUM_PRECEDENCE = x++;
+        int MULT_PRECEDENCE = x++;
+        int POSTFIX_PRECEDENCE = x++;
 
         Parser parser = new Parser();
-        parser.register(new PostfixParselet(POSTFIX_PRECENDENCE, "\\+{2}", "PLUSONE"));
-        parser.register(new InfixParselet(MULT_PRECENDENCE, "\\*", "MULT"));
-        parser.register(new InfixParselet(SUM_PRECENDENCE, "\\+", "PLUS"));
-        parser.register(new AtomParselet(ATOM_PRECENDENCE, "\\d+", "NUMBER"));
+        parser.register(new PostfixParselet(POSTFIX_PRECEDENCE, "\\+{2}", "PLUSONE"));
+        parser.register(new InfixParselet(MULT_PRECEDENCE, "\\*", "MULT"));
+        parser.register(new InfixParselet(SUM_PRECEDENCE, "\\+", "PLUS"));
+        parser.register(new AtomParselet(ATOM_PRECEDENCE, "\\d+", "NUMBER"));
 
         assertEquals("([+]:PLUS [1]:NUMBER ([*]:MULT ([++]:PLUSONE [2]:NUMBER) [3]:NUMBER))", parser.parse("1 + 2++ * 3").toString());
     }

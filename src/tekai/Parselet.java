@@ -26,6 +26,10 @@ public abstract class Parselet {
     protected boolean isLeftAssociativity() {
         return false;
     }
+    
+    protected void setParser(Parser parser) {
+        this.parser = parser;
+    }
 
     // == Accessors to be used by Parse Engine ==
 
@@ -107,7 +111,11 @@ public abstract class Parselet {
     }
 
     public Expression executeParsing(Parser parser, Expression left) {
-        this.parser = parser;
+        if (this.parser == null) {
+            this.parser = parser;
+        } else {
+            this.parser.setSource(parser.getSource());
+        }
         this.match = parser.lastMatch();
         this.left = left;
         this.right = null;
