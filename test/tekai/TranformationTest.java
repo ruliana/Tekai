@@ -7,6 +7,8 @@ import static tekai.standard.CommonTransformation.fromType;
 
 import org.junit.Test;
 
+import tekai.Expression;
+import tekai.Transformation;
 import tekai.standard.MultiTransformation;
 
 public class TranformationTest {

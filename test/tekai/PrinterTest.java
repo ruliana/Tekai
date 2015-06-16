@@ -5,6 +5,8 @@ import static tekai.Expression.e;
 
 import org.junit.Test;
 
+import tekai.Expression;
+
 public class PrinterTest {
 
     @Test

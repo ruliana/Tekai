@@ -1,4 +1,4 @@
-package tekai.test;
+package tekai.sql;
 
 import static org.junit.Assert.assertEquals;
 import static tekai.Expression.e;
